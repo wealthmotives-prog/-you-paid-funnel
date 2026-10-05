@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>You Paid — Your Work Should Count</title>
+<meta name="description" content="You Paid is building a performance-based financial history platform designed to recognize verified consistency over time.">
+<style>
+:root{
+  --bg:#080a0d;--bg2:#0f141a;--panel:#121820;--panel2:#171f28;--line:#2a3542;
+  --text:#f7f9fb;--muted:#99a7b6;--accent:#8cff66;--accent2:#d2ffc2;--warn:#ffce73;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:linear-gradient(180deg,var(--bg),var(--bg2));color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+a{text-decoration:none;color:inherit}
+.wrap{width:min(100% - 32px,1120px);margin:auto}
+.nav{position:sticky;top:0;z-index:40;background:rgba(8,10,13,.92);backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,.05)}
+.navin{display:flex;align-items:center;justify-content:space-between;padding:16px 0}
+.brand{font-size:26px;font-weight:950;letter-spacing:-.8px}.brand span{color:var(--accent)}
+.smallpill{font-size:11px;color:var(--muted);border:1px solid var(--line);padding:7px 10px;border-radius:999px}
+.hero{padding:72px 0 44px}
+.grid2{display:grid;grid-template-columns:1.15fr .85fr;gap:28px;align-items:center}
+.eyebrow{font-size:12px;letter-spacing:1.4px;text-transform:uppercase;color:var(--accent);font-weight:900}
+h1{font-size:clamp(44px,7vw,78px);line-height:.98;letter-spacing:-3px;margin:14px 0 18px}
+h2{font-size:clamp(28px,4vw,44px);line-height:1.02;letter-spacing:-1.5px;margin:8px 0 14px}
+h3{margin:0 0 8px}
+p{color:var(--muted);line-height:1.65}
+.lede{font-size:20px;max-width:720px}
+.ctarow{display:flex;gap:12px;flex-wrap:wrap;margin-top:24px}
+.btn{display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:16px;padding:15px 20px;font-weight:900;cursor:pointer}
+.primary{background:var(--accent);color:#071007}
+.secondary{background:#19212a;color:var(--text);border:1px solid var(--line)}
+.card{background:linear-gradient(180deg,var(--panel),#0f141a);border:1px solid var(--line);border-radius:24px;padding:20px}
+.demo{box-shadow:0 30px 90px rgba(0,0,0,.4)}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.status{font-size:11px;font-weight:900;color:var(--accent);background:rgba(140,255,102,.08);border:1px solid rgba(140,255,102,.4);padding:6px 9px;border-radius:999px}
+.big{font-size:40px;font-weight:950;letter-spacing:-1.5px}
+.label{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted)}
+.metricgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.metric{background:var(--panel2);border:1px solid var(--line);border-radius:16px;padding:14px}
+.metric strong{display:block;font-size:25px;margin-top:5px}
+.history{display:flex;gap:8px;overflow:auto;padding:4px 0 2px;margin-top:10px}
+.month{min-width:62px;text-align:center;border-radius:14px;padding:10px 8px;border:1px solid rgba(140,255,102,.35);background:rgba(140,255,102,.06);color:var(--accent2);font-size:11px}
+section{padding:58px 0}
+.sectionhead{max-width:760px;margin-bottom:26px}
+.three{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.feature{padding:20px;border-radius:20px;background:var(--panel);border:1px solid var(--line)}
+.num{width:38px;height:38px;border-radius:12px;background:rgba(140,255,102,.1);color:var(--accent);display:grid;place-items:center;font-weight:950;margin-bottom:12px}
+.quote{font-size:clamp(26px,4vw,42px);font-weight:950;line-height:1.08;letter-spacing:-1.2px}
+.adgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.adcard{padding:18px;border-radius:18px;background:#10161d;border:1px solid var(--line)}
+.adcard b{display:block;margin-bottom:6px}
+.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.input,select{width:100%;padding:14px 15px;border-radius:14px;border:1px solid var(--line);background:#0f151c;color:var(--text);font:inherit}
+.full{grid-column:1/-1}
+.note{font-size:12px;color:#8896a5;line-height:1.5}
+.success{display:none;background:rgba(140,255,102,.08);border:1px solid rgba(140,255,102,.4);color:var(--accent2);padding:13px;border-radius:14px;margin-top:12px}
+.tracker{font-size:12px;color:#8e9aa8;background:#0d1218;border:1px dashed #334150;border-radius:14px;padding:12px;white-space:pre-wrap}
+footer{padding:38px 0 54px;border-top:1px solid var(--line);color:#82909e;font-size:12px}
+@media(max-width:820px){
+  .grid2,.three,.adgrid,.formgrid{grid-template-columns:1fr}
+  .full{grid-column:auto}
+  .hero{padding-top:44px}
+}
+</style>
+</head>
+<body>
+<nav class="nav">
+  <div class="wrap navin">
+    <div class="brand">You <span>Paid</span></div>
+    <div style="display:flex;gap:9px;align-items:center"><a class="smallpill" href="#quokka-mission" data-track="nav_quokka">Quokka Mission</a><a class="smallpill" href="#join" data-track="nav_join">Founding Waitlist</a></div>
+  </div>
+</nav>
+
+<main>
+<section class="hero">
+  <div class="wrap grid2">
+    <div>
+      <div class="eyebrow" id="hookLabel">Performance should count</div>
+      <h1 id="heroTitle">You already show up.<br>Why doesn’t your financial history show it?</h1>
+      <p class="lede" id="heroBody">You Paid is building a new kind of performance account designed to recognize verified consistency over time.</p>
+      <div class="ctarow">
+        <a href="#how" class="btn primary" data-track="hero_demo">See how it works</a>
+        <a href="#join" class="btn secondary" data-track="hero_waitlist">Join the founding waitlist</a>
+      </div>
+      <p class="note">Concept-stage product. No credit-score outcome is guaranteed.</p>
+    </div>
+
+    <div class="card demo">
+      <div class="row">
+        <div>
+          <div class="label">PIK Performance Account™</div>
+          <div class="big">CURRENT</div>
+        </div>
+        <span class="status">VERIFIED ✓</span>
+      </div>
+      <div class="metricgrid">
+        <div class="metric"><span class="label">Verified work tenure</span><strong>4y 7m</strong></div>
+        <div class="metric"><span class="label">You Paid account age</span><strong>8 mo</strong></div>
+      </div>
+      <div style="margin-top:18px">
+        <div class="row"><span class="label">Monthly performance status</span><strong style="color:var(--accent)">SATISFIED</strong></div>
+        <div class="history">
+          <div class="month">SEP<br>✓</div><div class="month">AUG<br>✓</div><div class="month">JUL<br>✓</div>
+          <div class="month">JUN<br>✓</div><div class="month">MAY<br>✓</div><div class="month">APR<br>✓</div>
+        </div>
+      </div>
+      <div class="metricgrid">
+        <div class="metric"><span class="label">Credit limit</span><strong>N/A</strong></div>
+        <div class="metric"><span class="label">Utilization</span><strong>N/A</strong></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <div class="sectionhead">
+      <div class="eyebrow">The idea</div>
+      <h2>Recognition before remediation.</h2>
+      <p>Instead of asking consumers to take on more debt just to prove reliability, You Paid is being designed around verified, recurring performance.</p>
+    </div>
+    <div class="three">
+      <div class="feature"><div class="num">1</div><h3>Verify</h3><p>Confirm legitimate employment or qualifying work activity through approved sources.</p></div>
+      <div class="feature"><div class="num">2</div><h3>Satisfy</h3><p>Qualifying verified performance satisfies the monthly PIK Performance Obligation under the account terms.</p></div>
+      <div class="feature"><div class="num">3</div><h3>Build</h3><p>Month by month, the consumer builds a growing record of satisfactory account performance.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap grid2">
+    <div class="card">
+      <div class="eyebrow">The psychological wedge</div>
+      <div class="quote">“I’ve been working for years. Why shouldn’t that consistency count for something?”</div>
+    </div>
+    <div>
+      <h2>Not another “fix your credit” pitch.</h2>
+      <p>The product is meant to begin from recognition: you are already demonstrating discipline, consistency, and reliability. You Paid is being built to make that performance visible.</p>
+    </div>
+  </div>
+</section>
+
+<section id="quokka-mission">
+  <div class="wrap">
+    <div class="sectionhead">
+      <div class="eyebrow">The Quokka Mission</div>
+      <h2>Recognize value. Reward performance. Protect what matters.</h2>
+      <p>You Paid is being built around a simple belief: real value can exist before conventional systems fully recognize it. That belief extends beyond finance.</p>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <div style="font-size:54px;line-height:1">🌿</div>
+        <h3 style="font-size:26px;margin-top:14px">Growth with a conservation purpose.</h3>
+        <p>As You Paid grows, we intend for our ability to support quokka conservation, responsible research, habitat protection, education, and qualified conservation partnerships to grow with it.</p>
+        <p class="note">This is a long-term mission statement, not a representation that You Paid currently operates a zoological or conservation facility or has an existing animal-transfer arrangement.</p>
+      </div>
+
+      <div>
+        <div class="feature" style="margin-bottom:12px">
+          <div class="num">01</div>
+          <h3>Awareness</h3>
+          <p>Use the You Paid platform to introduce more people to quokkas and the importance of responsible conservation.</p>
+        </div>
+        <div class="feature" style="margin-bottom:12px">
+          <div class="num">02</div>
+          <h3>Support</h3>
+          <p>Develop measurable ways for growth in the You Paid ecosystem to support legitimate conservation efforts.</p>
+        </div>
+        <div class="feature" style="margin-bottom:12px">
+          <div class="num">03</div>
+          <h3>Partnership</h3>
+          <p>Pursue relationships with appropriate conservation, research, and zoological organizations.</p>
+        </div>
+        <div class="feature">
+          <div class="num">04</div>
+          <h3>Long-term U.S. conservation ambition</h3>
+          <p>Explore whether You Paid can help support a qualified U.S.-based conservation and educational program where people could responsibly observe and learn about quokkas.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:18px">
+      <div class="row">
+        <div>
+          <div class="label">Future ecosystem layer</div>
+          <h3 style="font-size:24px;margin-top:6px">QOKKA rewards and credentials</h3>
+        </div>
+        <span class="status">FUTURE</span>
+      </div>
+      <p>We are exploring a future participation layer in which verified milestones, founding-member status, education, referrals, and conservation participation may unlock QOKKA rewards or digital credentials. No cryptocurrency, token sale, investment product, or guaranteed economic value is being offered through this page.</p>
+    </div>
+  </div>
+</section>
+
+<section id="join">
+  <div class="wrap grid2">
+    <div>
+      <div class="eyebrow">Founding waitlist</div>
+      <h2>I want my work to count.</h2>
+      <p>This is the conversion event that matters. We capture source, campaign, ad hook, willingness-to-pay, and referral intent so the market can tell us what resonates.</p>
+    </div>
+
+    <div class="card">
+      <form id="waitlistForm">
+        <div class="formgrid">
+          <div>
+            <label class="label">First name</label>
+            <input class="input" name="first_name" required placeholder="Jordan">
+          </div>
+          <div>
+            <label class="label">Email</label>
+            <input class="input" name="email" type="email" required placeholder="you@example.com">
+          </div>
+          <div>
+            <label class="label">Work situation</label>
+            <select name="work_type">
+              <option>Hourly employee</option>
+              <option>Salaried employee</option>
+              <option>Gig / contract worker</option>
+              <option>Multiple jobs / platforms</option>
+            </select>
+          </div>
+          <div>
+            <label class="label">What would it be worth monthly?</label>
+            <select name="price_intent">
+              <option>$0 — free only</option>
+              <option>$4.99</option>
+              <option selected>$9.99</option>
+              <option>$14.99</option>
+              <option>$19.99+</option>
+            </select>
+          </div>
+          <div class="full">
+            <label class="label">Would you refer a coworker?</label>
+            <select name="referral_intent">
+              <option>Yes</option>
+              <option>Maybe</option>
+              <option>No</option>
+            </select>
+          </div>
+        </div>
+        <div class="full" style="margin-top:12px">
+          <label style="display:flex;gap:10px;align-items:flex-start;color:var(--muted);font-size:13px;line-height:1.45">
+            <input type="checkbox" name="email_consent" required style="margin-top:3px">
+            <span>I agree to receive product-development updates and early-access communications from You Paid. I can unsubscribe at any time.</span>
+          </label>
+        </div>
+        <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;opacity:0" aria-hidden="true">
+        <button class="btn primary" type="submit">Join the founding waitlist</button>
+        <div id="success" class="success">You’re on the founding list. Your campaign source and signup preferences were saved successfully.</div>
+        <div id="formError" class="success" style="display:none;border-color:#ff7a7a;color:#ffd0d0;background:rgba(255,122,122,.08)"></div>
+        <p class="note">Joining the waitlist does not open a credit account, create a tradeline, or guarantee any credit-reporting or credit-score result. Prelaunch access is intended for U.S. adults age 18 and older.</p>
+      </form>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:12px">
+      <a href="/privacy.html" data-track="footer_privacy">Privacy Policy</a>
+      <a href="/terms.html" data-track="footer_terms">Terms of Use</a>
+      <a href="/product-disclosure.html" data-track="footer_disclosure">Prelaunch Product Disclosure</a>
+    </div>
+    You Paid Inc. prelaunch. This site does not open a credit account, furnish a tradeline to a consumer reporting agency, or guarantee any credit-score result.
+  </div>
+</footer>
+
+<script>
+/* ==========================
+   TRAFFIC + CONVERSION LAYER
+   ========================== */
+
+const TRACKING_CONFIG = {
+  webhookUrl: "https://xknfxcyezchtypaisieu.supabase.co/functions/v1/capture-funnel",        // e.g. https://yourdomain.com/api/waitlist
+  ga4Id: "",             // e.g. G-XXXXXXXXXX
+  metaPixelId: "",       // e.g. 1234567890
+  tiktokPixelId: ""      // optional
+};
+
+const params = new URLSearchParams(location.search);
+
+function getSessionId(){
+  let id = sessionStorage.getItem("youpaid_session_id");
+  if(!id){
+    id = (crypto.randomUUID ? crypto.randomUUID() : "sess_" + Date.now() + "_" + Math.random().toString(36).slice(2));
+    sessionStorage.setItem("youpaid_session_id", id);
+  }
+  return id;
+}
+
+const sessionId = getSessionId();
+
+const attribution = {
+  hook: params.get("hook") || "default",
+  utm_source: params.get("utm_source") || "direct",
+  utm_medium: params.get("utm_medium") || "",
+  utm_campaign: params.get("utm_campaign") || "",
+  utm_content: params.get("utm_content") || "",
+  referrer: document.referrer || "direct",
+  landing_url: location.href
+};
+
+const hookCopy = {
+  recognition: {
+    label:"Recognition",
+    title:"You’ve been showing up for years. It’s time that consistency counted.",
+    body:"You Paid is being built to recognize verified work performance as a growing record of financial reliability."
+  },
+  fairness: {
+    label:"Fairness",
+    title:"Rent counts. Loans count. Cards count. Why doesn’t your work?",
+    body:"You Paid is building a performance-based account designed to make verified consistency visible over time."
+  },
+  identity: {
+    label:"Identity",
+    title:"5:30 AM alarm. Never missed a shift. Thin credit file. That doesn’t add up.",
+    body:"Your present-day discipline deserves recognition. You Paid is being built around verified performance, not just past borrowing."
+  },
+  product: {
+    label:"Meet You Paid",
+    title:"Turn verified work consistency into positive financial history.",
+    body:"A new performance-account concept designed around monthly verified satisfaction and account age."
+  }
+};
+
+if (hookCopy[attribution.hook]) {
+  const h = hookCopy[attribution.hook];
+  document.getElementById("hookLabel").textContent = h.label;
+  document.getElementById("heroTitle").innerHTML = h.title;
+  document.getElementById("heroBody").textContent = h.body;
+}
+
+let events = JSON.parse(localStorage.getItem("youpaid_events") || "[]");
+
+function renderEvents(){}
+renderEvents();
+
+async function postToBackend(payload){
+  if(!TRACKING_CONFIG.webhookUrl) return {ok:true};
+  const response = await fetch(TRACKING_CONFIG.webhookUrl, {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify(payload),
+    keepalive:true
+  });
+  let body = {};
+  try { body = await response.json(); } catch {}
+  if(!response.ok) throw new Error(body.error || "Unable to save right now.");
+  return body;
+}
+
+function track(event, data={}){
+  const localPayload = {event, time:new Date().toISOString(), ...attribution, ...data};
+  events.push(localPayload);
+  localStorage.setItem("youpaid_events", JSON.stringify(events));
+  renderEvents();
+
+  if (typeof window.gtag === "function") window.gtag("event", event, data);
+  if (typeof window.fbq === "function") window.fbq("trackCustom", event, data);
+  if (window.ttq && typeof window.ttq.track === "function") window.ttq.track(event, data);
+
+  postToBackend({
+    type:"event",
+    event_name:event,
+    session_id:sessionId,
+    hook:attribution.hook,
+    utm_source:attribution.utm_source,
+    utm_medium:attribution.utm_medium,
+    utm_campaign:attribution.utm_campaign,
+    utm_content:attribution.utm_content,
+    page_url:location.href,
+    referrer:document.referrer || "direct",
+    metadata:data
+  }).catch(()=>{});
+}
+
+track("page_view");
+
+let formStarted = false;
+const waitlistForm = document.getElementById("waitlistForm");
+waitlistForm.addEventListener("focusin", () => {
+  if (!formStarted) {
+    formStarted = true;
+    track("waitlist_form_started");
+  }
+});
+
+const scrollMilestones = new Set();
+window.addEventListener("scroll", () => {
+  const doc = document.documentElement;
+  const max = Math.max(1, doc.scrollHeight - window.innerHeight);
+  const pct = Math.round((window.scrollY / max) * 100);
+  if (pct >= 50 && !scrollMilestones.has(50)) {
+    scrollMilestones.add(50);
+    track("scroll_50");
+  }
+  if (pct >= 90 && !scrollMilestones.has(90)) {
+    scrollMilestones.add(90);
+    track("scroll_90");
+  }
+}, { passive:true });
+
+document.querySelectorAll("[data-track]").forEach(el=>{
+  el.addEventListener("click",()=>track(el.dataset.track));
+});
+
+waitlistForm.addEventListener("submit", async (e)=>{
+  e.preventDefault();
+
+  const form = e.currentTarget;
+  const button = form.querySelector("button[type=submit]");
+  const success = document.getElementById("success");
+  const errorBox = document.getElementById("formError");
+  success.style.display = "none";
+  errorBox.style.display = "none";
+
+  const fd = new FormData(form);
+  const formData = Object.fromEntries(fd.entries());
+
+  if(!fd.get("email_consent")){
+    errorBox.textContent = "Please check the consent box before joining.";
+    errorBox.style.display = "block";
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = "Saving your spot…";
+
+  const submission = {
+    type:"lead",
+    first_name:formData.first_name || "",
+    email:formData.email || "",
+    work_type:formData.work_type || "",
+    price_intent:formData.price_intent || "",
+    referral_intent:formData.referral_intent || "",
+    website:formData.website || "",
+    email_consent:true,
+    session_id:sessionId,
+    ...attribution
+  };
+
+  try{
+    const result = await postToBackend(submission);
+
+    success.style.display = "block";
+    button.textContent = result.existing ? "Founding profile updated ✓" : "Founding spot requested ✓";
+
+    if (typeof window.gtag === "function") {
+      window.gtag("event", "waitlist_conversion", {
+        price_intent: submission.price_intent,
+        work_type: submission.work_type,
+        referral_intent: submission.referral_intent
+      });
+    }
+    if (typeof window.fbq === "function") window.fbq("track", "Lead");
+    if (window.ttq && typeof window.ttq.track === "function") window.ttq.track("SubmitForm");
+
+    const localWaitlist = JSON.parse(localStorage.getItem("youpaid_waitlist") || "[]");
+    localWaitlist.push({...submission, submitted_at:new Date().toISOString()});
+    localStorage.setItem("youpaid_waitlist", JSON.stringify(localWaitlist));
+  }catch(err){
+    errorBox.textContent = err.message || "We couldn’t save your request. Please try again.";
+    errorBox.style.display = "block";
+    button.disabled = false;
+    button.textContent = "Join the founding waitlist";
+  }
+});
+
+</script>
+</body>
+</html>
