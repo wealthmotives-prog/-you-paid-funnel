@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>You Paid Member Ledger</title>
+<meta name="description" content="Your verified work history, organized over time.">
+<style>
+:root{--bg:#080a0d;--panel:#11151a;--panel2:#171c22;--text:#f6f8fb;--muted:#a7b0bb;--line:#27303a;--lime:#8cff66;--danger:#ff6b6b}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text)}
+a{color:inherit}.wrap{max-width:1100px;margin:auto;padding:24px}.top{display:flex;justify-content:space-between;align-items:center;padding:10px 0 28px}.brand{font-weight:900;font-size:24px;letter-spacing:-.7px}.brand span{color:var(--lime)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:22px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.metric strong{display:block;font-size:28px;margin-top:6px}.muted{color:var(--muted)}button,.btn{background:var(--lime);color:#071008;border:0;border-radius:12px;padding:12px 16px;font-weight:800;cursor:pointer}button.secondary{background:var(--panel2);color:var(--text);border:1px solid var(--line)}
+input,select{width:100%;padding:12px 13px;border-radius:11px;border:1px solid var(--line);background:#0d1116;color:var(--text);margin-top:6px}label{display:block;font-size:13px;color:var(--muted);margin:12px 0}.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}.hidden{display:none!important}.stack{display:grid;gap:14px}.status{display:inline-flex;padding:6px 10px;border-radius:999px;background:#142013;color:var(--lime);font-size:12px;font-weight:800}.notice{padding:12px 14px;border-radius:12px;background:#10161d;border:1px solid var(--line);color:var(--muted);font-size:14px}.danger{color:var(--danger)}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:12px;border-bottom:1px solid var(--line);font-size:14px}th{color:var(--muted);font-weight:600}.hero{padding:40px 0 24px}.hero h1{font-size:clamp(36px,7vw,68px);line-height:.98;letter-spacing:-2px;margin:0 0 14px}.hero p{max-width:720px;font-size:18px;color:var(--muted)}.auth{max-width:520px;margin:30px auto}.actions{display:flex;gap:10px;flex-wrap:wrap}.section-title{display:flex;justify-content:space-between;align-items:center;margin:28px 0 12px}
+@media(max-width:760px){.grid,.row{grid-template-columns:1fr}.wrap{padding:18px}.top{align-items:flex-start}.hero{padding-top:20px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><div class="brand">You <span>Paid</span></div><div class="actions"><a class="btn" href="/">Home</a><button id="signOut" class="secondary hidden">Sign out</button></div></div>
+
+  <section id="authView" class="auth card">
+    <div class="status">Founding member access</div>
+    <h1>Your work history starts here.</h1>
+    <p class="muted">Create a secure You Paid account to begin organizing verified employment and work-presence data. Reporting is not yet active.</p>
+    <label>Email<input id="email" type="email" autocomplete="email" placeholder="you@example.com"></label>
+    <label>Password<input id="password" type="password" autocomplete="current-password" minlength="8" placeholder="8+ characters"></label>
+    <label>First name<input id="firstName" type="text" autocomplete="given-name" placeholder="First name"></label>
+    <div class="actions"><button id="signUp">Create account</button><button id="signIn" class="secondary">Sign in</button></div>
+    <p id="authMsg" class="muted"></p>
+  </section>
+
+  <main id="memberView" class="hidden">
+    <section class="hero">
+      <div class="status">Verified Work Ledger</div>
+      <h1>Build a record of showing up.</h1>
+      <p>Your You Paid record separates employment tenure from You Paid verification history. Nothing is backdated, and only supported activity is marked verified.</p>
+    </section>
+
+    <div class="grid">
+      <div class="card metric"><span class="muted">Member since</span><strong id="memberSince">—</strong></div>
+      <div class="card metric"><span class="muted">Employment records</span><strong id="employmentCount">0</strong></div>
+      <div class="card metric"><span class="muted">Verified cycles</span><strong id="verifiedCycles">0</strong></div>
+    </div>
+
+    <div class="section-title"><h2>Employment</h2></div>
+    <div class="card">
+      <div class="row">
+        <label>Employer<input id="employerName" placeholder="Employer name"></label>
+        <label>Role<input id="roleTitle" placeholder="Role or title"></label>
+      </div>
+      <div class="row">
+        <label>Employment start<input id="employmentStart" type="date"></label>
+        <label>Status<select id="employmentStatus"><option value="active">Active</option><option value="leave">Leave</option><option value="ended">Ended</option></select></label>
+      </div>
+      <button id="addEmployment">Add employment record</button>
+      <p id="employmentMsg" class="muted"></p>
+    </div>
+
+    <div class="section-title"><h2>Your records</h2></div>
+    <div class="card">
+      <div id="employmentList" class="stack"><p class="muted">No employment records yet.</p></div>
+    </div>
+
+    <div class="section-title"><h2>Monthly verification</h2></div>
+    <div class="card">
+      <div class="notice">Verification events and monthly cycles are read-only for members. They will be written only by approved verification workflows so the ledger remains auditable.</div>
+      <div style="overflow:auto;margin-top:14px">
+        <table><thead><tr><th>Month</th><th>Workdays</th><th>Clock-ins</th><th>Status</th></tr></thead><tbody id="cycleRows"><tr><td colspan="4" class="muted">No verified cycles yet.</td></tr></tbody></table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = "https://xknfxcyezchtypaisieu.supabase.co";
+const SUPABASE_KEY = "sb_publishable_p_YuJnrxr3Md0qyunj9oBg_untSIexd";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const el = id => document.getElementById(id);
+const fmtMonth = d => d ? new Date(d+"T00:00:00").toLocaleDateString(undefined,{month:"short",year:"numeric"}) : "—";
+const fmtDate = d => d ? new Date(d).toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"}) : "—";
+
+async function refresh(){
+  const {data:{session}} = await sb.auth.getSession();
+  const logged = !!session;
+  el("authView").classList.toggle("hidden", logged);
+  el("memberView").classList.toggle("hidden", !logged);
+  el("signOut").classList.toggle("hidden", !logged);
+  if(!logged) return;
+
+  const uid = session.user.id;
+  const [{data:profile},{data:jobs},{data:cycles}] = await Promise.all([
+    sb.from("member_profiles").select("*").eq("user_id",uid).maybeSingle(),
+    sb.from("employment_records").select("*").eq("user_id",uid).order("employment_start",{ascending:false}),
+    sb.from("monthly_work_cycles").select("*").eq("user_id",uid).order("cycle_month",{ascending:false})
+  ]);
+
+  el("memberSince").textContent = profile ? fmtDate(profile.joined_at) : "Today";
+  el("employmentCount").textContent = jobs?.length || 0;
+  el("verifiedCycles").textContent = (cycles||[]).filter(x=>x.cycle_status==="verified").length;
+
+  el("employmentList").innerHTML = jobs?.length ? jobs.map(j => `
+    <div class="notice">
+      <strong>${escapeHtml(j.employer_name)}</strong>${j.role_title ? " · "+escapeHtml(j.role_title) : ""}<br>
+      <span class="muted">Started ${fmtDate(j.employment_start)} · ${escapeHtml(j.employment_status)} · Verification: ${escapeHtml(j.verification_status)}</span>
+    </div>`).join("") : '<p class="muted">No employment records yet.</p>';
+
+  el("cycleRows").innerHTML = cycles?.length ? cycles.map(c=>`
+    <tr><td>${fmtMonth(c.cycle_month)}</td><td>${c.verified_workdays}</td><td>${c.verified_clock_ins}</td><td>${escapeHtml(c.cycle_status)}</td></tr>`).join("") :
+    '<tr><td colspan="4" class="muted">No verified cycles yet.</td></tr>';
+}
+
+function escapeHtml(s=""){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));}
+
+el("signUp").onclick = async()=>{
+  el("authMsg").textContent="Creating account…";
+  const {error} = await sb.auth.signUp({
+    email:el("email").value.trim(),
+    password:el("password").value,
+    options:{data:{first_name:el("firstName").value.trim(),display_name:el("firstName").value.trim()}}
+  });
+  el("authMsg").textContent = error ? error.message : "Account created. Check your email if confirmation is required, then sign in.";
+  if(!error) refresh();
+};
+
+el("signIn").onclick = async()=>{
+  el("authMsg").textContent="Signing in…";
+  const {error} = await sb.auth.signInWithPassword({email:el("email").value.trim(),password:el("password").value});
+  el("authMsg").textContent = error ? error.message : "";
+  if(!error) refresh();
+};
+
+el("signOut").onclick = async()=>{ await sb.auth.signOut(); refresh(); };
+
+el("addEmployment").onclick = async()=>{
+  const {data:{session}} = await sb.auth.getSession();
+  if(!session) return;
+  const employer = el("employerName").value.trim();
+  const start = el("employmentStart").value;
+  if(!employer || !start){el("employmentMsg").textContent="Employer and start date are required.";return;}
+  el("employmentMsg").textContent="Saving…";
+  const {error} = await sb.from("employment_records").insert({
+    user_id:session.user.id,
+    employer_name:employer,
+    role_title:el("roleTitle").value.trim() || null,
+    employment_start:start,
+    employment_status:el("employmentStatus").value
+  });
+  if(error){el("employmentMsg").textContent=error.message;return;}
+  el("employmentMsg").textContent="Employment record added. Verification is still pending.";
+  el("employerName").value="";el("roleTitle").value="";el("employmentStart").value="";
+  refresh();
+};
+
+sb.auth.onAuthStateChange(()=>refresh());
+refresh();
+</script>
+</body>
+</html>
