@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>You Paid Operator</title>
+<meta name="robots" content="noindex,nofollow">
+<style>
+:root{--bg:#080a0d;--panel:#11161c;--panel2:#161d25;--line:#29333e;--text:#f7f9fb;--muted:#9aa6b2;--lime:#8cff66;--amber:#ffcf70}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+a{color:inherit;text-decoration:none}.wrap{max-width:1180px;margin:auto;padding:22px}.top{display:flex;justify-content:space-between;align-items:center;gap:12px}.brand{font-size:22px;font-weight:900}.brand span{color:var(--lime)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.metric strong{display:block;font-size:30px;margin-top:6px}.muted{color:var(--muted)}button{border:0;border-radius:11px;padding:11px 14px;font-weight:800;cursor:pointer;background:var(--lime);color:#071008}button.secondary{background:var(--panel2);color:var(--text);border:1px solid var(--line)}
+input{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:#0d1116;color:var(--text);margin-top:6px}.hidden{display:none!important}.auth{max-width:470px;margin:70px auto}.stack{display:grid;gap:12px}.section{margin-top:26px}.row{display:flex;justify-content:space-between;gap:12px;align-items:center}.badge{display:inline-flex;padding:5px 8px;border-radius:999px;background:#132015;color:var(--lime);font-size:11px;font-weight:800}.warn{color:var(--amber)}
+table{width:100%;border-collapse:collapse}th,td{padding:11px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}th{color:var(--muted);font-weight:600}.scroll{overflow:auto}
+@media(max-width:840px){.grid{grid-template-columns:1fr 1fr}.top{align-items:flex-start}}@media(max-width:520px){.grid{grid-template-columns:1fr}.wrap{padding:15px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="brand">You <span>Paid</span> <span style="color:var(--muted);font-size:14px">Operator</span></div>
+    <div><a href="/">Public site</a> · <a href="/app.html">Member app</a> <button id="signOut" class="secondary hidden" style="margin-left:10px">Sign out</button></div>
+  </div>
+
+  <section id="authView" class="auth card">
+    <span class="badge">Restricted</span>
+    <h1>Operator access</h1>
+    <p class="muted">Authorized You Paid operators only.</p>
+    <label>Email<input id="email" type="email" autocomplete="email" placeholder="hello@joinyoupaid.com"></label>
+    <label>Password<input id="password" type="password" autocomplete="current-password"></label>
+    <button id="signIn">Sign in</button>
+    <p id="authMsg" class="muted"></p>
+  </section>
+
+  <main id="adminView" class="hidden">
+    <section style="padding:42px 0 22px">
+      <span class="badge">Admin portal</span>
+      <h1 style="font-size:clamp(38px,7vw,66px);letter-spacing:-2px;margin:12px 0 8px">Control room.</h1>
+      <p class="muted">Member growth, verification integrity, and funnel activity in one place.</p>
+    </section>
+
+    <div class="grid">
+      <div class="card metric"><span class="muted">Waitlist</span><strong id="leadCount">—</strong></div>
+      <div class="card metric"><span class="muted">Members</span><strong id="memberCount">—</strong></div>
+      <div class="card metric"><span class="muted">Pending employment</span><strong id="pendingCount">—</strong></div>
+      <div class="card metric"><span class="muted">Verified cycles</span><strong id="cycleCount">—</strong></div>
+    </div>
+
+    <div class="section">
+      <div class="row"><h2>Pending employment review</h2><button id="refresh" class="secondary">Refresh</button></div>
+      <div class="card scroll">
+        <table><thead><tr><th>Member</th><th>Employer</th><th>Start</th><th>Status</th><th>Action</th></tr></thead><tbody id="pendingRows"></tbody></table>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Recent waitlist leads</h2>
+      <div class="card scroll">
+        <table><thead><tr><th>Name</th><th>Email</th><th>Work type</th><th>Referral intent</th><th>Joined</th></tr></thead><tbody id="leadRows"></tbody></table>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Recent members</h2>
+      <div class="card scroll">
+        <table><thead><tr><th>Name</th><th>Status</th><th>Joined</th></tr></thead><tbody id="memberRows"></tbody></table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const sb=supabase.createClient("https://xknfxcyezchtypaisieu.supabase.co","sb_publishable_p_YuJnrxr3Md0qyunj9oBg_untSIexd");
+const el=id=>document.getElementById(id), esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));
+const fmt=d=>d?new Date(d).toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"}):"—";
+
+async function gate(){
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session){showAuth();return}
+  const {data:isAdmin,error}=await sb.rpc("is_you_paid_admin");
+  if(error||!isAdmin){showAuth("This account is not authorized for operator access.");return}
+  el("authView").classList.add("hidden");el("adminView").classList.remove("hidden");el("signOut").classList.remove("hidden");
+  await loadDashboard();
+}
+function showAuth(msg=""){el("authView").classList.remove("hidden");el("adminView").classList.add("hidden");el("signOut").classList.add("hidden");if(msg)el("authMsg").textContent=msg}
+
+async function loadDashboard(){
+  const [leads,members,pending,cycles] = await Promise.all([
+    sb.from("waitlist_leads").select("first_name,email,work_type,referral_intent,created_at").order("created_at",{ascending:false}).limit(25),
+    sb.from("member_profiles").select("user_id,display_name,member_status,joined_at").order("joined_at",{ascending:false}).limit(25),
+    sb.from("employment_records").select("id,user_id,employer_name,employment_start,employment_status,verification_status").eq("verification_status","pending").order("created_at",{ascending:true}).limit(50),
+    sb.from("monthly_work_cycles").select("id",{count:"exact",head:true}).eq("cycle_status","verified")
+  ]);
+  const [leadCount,memberCount,pendingCount] = await Promise.all([
+    sb.from("waitlist_leads").select("lead_id",{count:"exact",head:true}),
+    sb.from("member_profiles").select("user_id",{count:"exact",head:true}),
+    sb.from("employment_records").select("id",{count:"exact",head:true}).eq("verification_status","pending")
+  ]);
+  el("leadCount").textContent=leadCount.count??0;el("memberCount").textContent=memberCount.count??0;el("pendingCount").textContent=pendingCount.count??0;el("cycleCount").textContent=cycles.count??0;
+
+  el("leadRows").innerHTML=(leads.data||[]).map(x=>`<tr><td>${esc(x.first_name)}</td><td>${esc(x.email)}</td><td>${esc(x.work_type)}</td><td>${esc(x.referral_intent)}</td><td>${fmt(x.created_at)}</td></tr>`).join("")||'<tr><td colspan="5" class="muted">No leads.</td></tr>';
+  el("memberRows").innerHTML=(members.data||[]).map(x=>`<tr><td>${esc(x.display_name||"Member")}</td><td>${esc(x.member_status)}</td><td>${fmt(x.joined_at)}</td></tr>`).join("")||'<tr><td colspan="3" class="muted">No members.</td></tr>';
+
+  const names = new Map((members.data||[]).map(m=>[m.user_id,m.display_name||m.user_id.slice(0,8)]));
+  el("pendingRows").innerHTML=(pending.data||[]).map(x=>`<tr><td>${esc(names.get(x.user_id)||x.user_id.slice(0,8))}</td><td>${esc(x.employer_name)}</td><td>${fmt(x.employment_start)}</td><td>${esc(x.employment_status)}</td><td><button onclick="verifyEmployment('${x.id}')">Mark verified</button></td></tr>`).join("")||'<tr><td colspan="5" class="muted">No pending records.</td></tr>';
+}
+async function verifyEmployment(id){
+  if(!confirm("Mark this employment record verified?")) return;
+  const {error}=await sb.from("employment_records").update({verification_status:"verified",updated_at:new Date().toISOString()}).eq("id",id);
+  if(error){alert(error.message);return}
+  const {data:{session}}=await sb.auth.getSession();
+  if(session) await sb.from("verification_audit_log").insert({user_id:session.user.id,action:"admin_employment_verified",details:{employment_id:id}});
+  await loadDashboard();
+}
+el("signIn").onclick=async()=>{el("authMsg").textContent="Signing in…";const {error}=await sb.auth.signInWithPassword({email:el("email").value.trim(),password:el("password").value});if(error){el("authMsg").textContent=error.message;return}await gate()};
+el("signOut").onclick=async()=>{await sb.auth.signOut();showAuth()};
+el("refresh").onclick=loadDashboard;
+sb.auth.onAuthStateChange(()=>gate());gate();
+</script>
+</body>
+</html>
