@@ -107,10 +107,11 @@ async function loadDashboard(){
 }
 async function verifyEmployment(id){
   if(!confirm("Mark this employment record verified?")) return;
+  const {data:record,error:readError}=await sb.from("employment_records").select("user_id").eq("id",id).single();
+  if(readError){alert(readError.message);return}
   const {error}=await sb.from("employment_records").update({verification_status:"verified",updated_at:new Date().toISOString()}).eq("id",id);
   if(error){alert(error.message);return}
-  const {data:{session}}=await sb.auth.getSession();
-  if(session) await sb.from("verification_audit_log").insert({user_id:session.user.id,action:"admin_employment_verified",details:{employment_id:id}});
+  await sb.from("verification_audit_log").insert({user_id:record.user_id,action:"admin_employment_verified",details:{employment_id:id}});
   await loadDashboard();
 }
 el("signIn").onclick=async()=>{el("authMsg").textContent="Signing in…";const {error}=await sb.auth.signInWithPassword({email:el("email").value.trim(),password:el("password").value});if(error){el("authMsg").textContent=error.message;return}await gate()};
