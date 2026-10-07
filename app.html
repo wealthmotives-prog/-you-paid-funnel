@@ -16,7 +16,7 @@ input,select{width:100%;padding:12px 13px;border-radius:11px;border:1px solid va
 </head>
 <body>
 <div class="wrap">
-  <div class="top"><div class="brand">You <span>Paid</span></div><div class="actions"><a class="btn" href="/">Home</a><button id="signOut" class="secondary hidden">Sign out</button></div></div>
+  <div class="top"><div class="brand">You <span>Paid</span></div><div class="actions"><a class="btn secondary" href="/founders.html">Founding Access</a><a class="btn" href="/">Home</a><button id="signOut" class="secondary hidden">Sign out</button></div></div>
 
   <section id="authView" class="auth card">
     <div class="status">Founding member access</div>
@@ -40,6 +40,24 @@ input,select{width:100%;padding:12px 13px;border-radius:11px;border:1px solid va
       <div class="card metric"><span class="muted">Member since</span><strong id="memberSince">—</strong></div>
       <div class="card metric"><span class="muted">Employment records</span><strong id="employmentCount">0</strong></div>
       <div class="card metric"><span class="muted">Verified cycles</span><strong id="verifiedCycles">0</strong></div>
+    </div>
+
+
+    <div class="section-title"><h2>Founding status</h2></div>
+    <div class="card" id="founderCard">
+      <div class="actions" style="justify-content:space-between;align-items:center">
+        <div>
+          <div class="status" id="founderBadge">FOUNDING ERA</div>
+          <h3 id="founderTitle" style="margin:12px 0 6px">No founding level secured yet</h3>
+          <p id="founderDetail" class="muted" style="margin:0">Choose $1, $10, or $100 Founding Access while the prelaunch founding era remains open.</p>
+        </div>
+        <a class="btn" href="/founders.html" id="founderAction">Choose level</a>
+      </div>
+      <div class="grid" style="margin-top:16px">
+        <div class="notice"><span class="muted">Selected level</span><br><strong id="founderSelected">—</strong></div>
+        <div class="notice"><span class="muted">Payment status</span><br><strong id="founderPayment">Not started</strong></div>
+        <div class="notice"><span class="muted">Founder status</span><br><strong id="founderSecured">Not secured</strong></div>
+      </div>
     </div>
 
     <div class="section-title"><h2>Employment</h2></div>
@@ -90,15 +108,43 @@ async function refresh(){
   if(!logged) return;
 
   const uid = session.user.id;
-  const [{data:profile},{data:jobs},{data:cycles}] = await Promise.all([
+  const [{data:profile},{data:jobs},{data:cycles},{data:founderIntent},{data:founderMembership}] = await Promise.all([
     sb.from("member_profiles").select("*").eq("user_id",uid).maybeSingle(),
     sb.from("employment_records").select("*").eq("user_id",uid).order("employment_start",{ascending:false}),
-    sb.from("monthly_work_cycles").select("*").eq("user_id",uid).order("cycle_month",{ascending:false})
+    sb.from("monthly_work_cycles").select("*").eq("user_id",uid).order("cycle_month",{ascending:false}),
+    sb.from("founder_intents").select("*").eq("user_id",uid).maybeSingle(),
+    sb.from("founder_memberships").select("*").eq("user_id",uid).maybeSingle()
   ]);
 
   el("memberSince").textContent = profile ? fmtDate(profile.joined_at) : "Today";
   el("employmentCount").textContent = jobs?.length || 0;
   el("verifiedCycles").textContent = (cycles||[]).filter(x=>x.cycle_status==="verified").length;
+
+
+  const founderNames={founder:"Founding Member",builder:"Founding Builder",cornerstone:"Founding Cornerstone"};
+  const founderAmounts={founder:"$1",builder:"$10",cornerstone:"$100"};
+  if(founderMembership){
+    el("founderTitle").textContent=founderNames[founderMembership.tier_code]+" secured";
+    el("founderDetail").textContent="Your founding level is secured and permanently attached to your You Paid member record, subject to the Founding Access Terms.";
+    el("founderSelected").textContent=founderNames[founderMembership.tier_code]+" · "+founderAmounts[founderMembership.tier_code];
+    el("founderPayment").textContent="Paid";
+    el("founderSecured").textContent="Secured ✓";
+    el("founderAction").textContent="View founder perks";
+  }else if(founderIntent){
+    el("founderTitle").textContent=founderNames[founderIntent.tier_code]+" selected";
+    el("founderDetail").textContent="Your selection is saved. Founding status becomes secured only after successful payment.";
+    el("founderSelected").textContent=founderNames[founderIntent.tier_code]+" · "+founderAmounts[founderIntent.tier_code];
+    el("founderPayment").textContent=founderIntent.status==="checkout_pending"?"Checkout pending":"Awaiting checkout";
+    el("founderSecured").textContent="Not yet secured";
+    el("founderAction").textContent="Continue";
+  }else{
+    el("founderTitle").textContent="No founding level secured yet";
+    el("founderDetail").textContent="Choose $1, $10, or $100 Founding Access while the prelaunch founding era remains open.";
+    el("founderSelected").textContent="—";
+    el("founderPayment").textContent="Not started";
+    el("founderSecured").textContent="Not secured";
+    el("founderAction").textContent="Choose level";
+  }
 
   el("employmentList").innerHTML = jobs?.length ? jobs.map(j => `
     <div class="notice">
