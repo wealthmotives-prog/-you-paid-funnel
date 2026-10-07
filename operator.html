@@ -44,6 +44,18 @@ table{width:100%;border-collapse:collapse}th,td{padding:11px;border-bottom:1px s
       <div class="card metric"><span class="muted">Members</span><strong id="memberCount">—</strong></div>
       <div class="card metric"><span class="muted">Pending employment</span><strong id="pendingCount">—</strong></div>
       <div class="card metric"><span class="muted">Verified cycles</span><strong id="cycleCount">—</strong></div>
+      <div class="card metric"><span class="muted">Founder selections</span><strong id="founderIntentCount">—</strong></div>
+      <div class="card metric"><span class="muted">Secured founders</span><strong id="founderSecuredCount">—</strong></div>
+      <div class="card metric"><span class="muted">Founding revenue</span><strong id="founderRevenue">—</strong></div>
+      <div class="card metric"><span class="muted">Cornerstones</span><strong id="cornerstoneCount">—</strong></div>
+    </div>
+
+
+    <div class="section">
+      <h2>Founding access pipeline</h2>
+      <div class="card scroll">
+        <table><thead><tr><th>Member</th><th>Level</th><th>Amount</th><th>Status</th><th>Selected</th></tr></thead><tbody id="founderRows"></tbody></table>
+      </div>
     </div>
 
     <div class="section">
@@ -86,23 +98,36 @@ async function gate(){
 function showAuth(msg=""){el("authView").classList.remove("hidden");el("adminView").classList.add("hidden");el("signOut").classList.add("hidden");if(msg)el("authMsg").textContent=msg}
 
 async function loadDashboard(){
-  const [leads,members,pending,cycles] = await Promise.all([
+  const [leads,members,pending,cycles,founderIntents,founderMemberships,founderContributions] = await Promise.all([
     sb.from("waitlist_leads").select("first_name,email,work_type,referral_intent,created_at").order("created_at",{ascending:false}).limit(25),
     sb.from("member_profiles").select("user_id,display_name,member_status,joined_at").order("joined_at",{ascending:false}).limit(25),
     sb.from("employment_records").select("id,user_id,employer_name,employment_start,employment_status,verification_status").eq("verification_status","pending").order("created_at",{ascending:true}).limit(50),
-    sb.from("monthly_work_cycles").select("id",{count:"exact",head:true}).eq("cycle_status","verified")
+    sb.from("monthly_work_cycles").select("id",{count:"exact",head:true}).eq("cycle_status","verified"),
+    sb.from("founder_intents").select("user_id,tier_code,amount_cents,status,selected_at").order("selected_at",{ascending:false}).limit(50),
+    sb.from("founder_memberships").select("user_id,tier_code,status,secured_at,contribution_total_cents").order("secured_at",{ascending:false}).limit(50),
+    sb.from("founder_contributions").select("amount_cents,status")
   ]);
-  const [leadCount,memberCount,pendingCount] = await Promise.all([
+  const [leadCount,memberCount,pendingCount,founderIntentCount,founderSecuredCount,cornerstoneCount] = await Promise.all([
     sb.from("waitlist_leads").select("lead_id",{count:"exact",head:true}),
     sb.from("member_profiles").select("user_id",{count:"exact",head:true}),
-    sb.from("employment_records").select("id",{count:"exact",head:true}).eq("verification_status","pending")
+    sb.from("employment_records").select("id",{count:"exact",head:true}).eq("verification_status","pending"),
+    sb.from("founder_intents").select("user_id",{count:"exact",head:true}),
+    sb.from("founder_memberships").select("user_id",{count:"exact",head:true}).eq("status","secured"),
+    sb.from("founder_memberships").select("user_id",{count:"exact",head:true}).eq("status","secured").eq("tier_code","cornerstone")
   ]);
   el("leadCount").textContent=leadCount.count??0;el("memberCount").textContent=memberCount.count??0;el("pendingCount").textContent=pendingCount.count??0;el("cycleCount").textContent=cycles.count??0;
+  el("founderIntentCount").textContent=founderIntentCount.count??0;el("founderSecuredCount").textContent=founderSecuredCount.count??0;el("cornerstoneCount").textContent=cornerstoneCount.count??0;
+  const paidRevenue=(founderContributions.data||[]).filter(x=>x.status==="paid").reduce((sum,x)=>sum+Number(x.amount_cents||0),0);
+  el("founderRevenue").textContent="$"+(paidRevenue/100).toFixed(2);
 
   el("leadRows").innerHTML=(leads.data||[]).map(x=>`<tr><td>${esc(x.first_name)}</td><td>${esc(x.email)}</td><td>${esc(x.work_type)}</td><td>${esc(x.referral_intent)}</td><td>${fmt(x.created_at)}</td></tr>`).join("")||'<tr><td colspan="5" class="muted">No leads.</td></tr>';
   el("memberRows").innerHTML=(members.data||[]).map(x=>`<tr><td>${esc(x.display_name||"Member")}</td><td>${esc(x.member_status)}</td><td>${fmt(x.joined_at)}</td></tr>`).join("")||'<tr><td colspan="3" class="muted">No members.</td></tr>';
 
+
+  const founderNames={founder:"Founding Member",builder:"Founding Builder",cornerstone:"Founding Cornerstone"};
   const names = new Map((members.data||[]).map(m=>[m.user_id,m.display_name||m.user_id.slice(0,8)]));
+  el("founderRows").innerHTML=(founderIntents.data||[]).map(x=>`<tr><td>${esc(names.get(x.user_id)||x.user_id.slice(0,8))}</td><td>${esc(founderNames[x.tier_code]||x.tier_code)}</td><td>${(Number(x.amount_cents||0)/100).toFixed(2)}</td><td>${esc(x.status)}</td><td>${fmt(x.selected_at)}</td></tr>`).join("")||'<tr><td colspan="5" class="muted">No founder selections yet.</td></tr>';
+
   el("pendingRows").innerHTML=(pending.data||[]).map(x=>`<tr><td>${esc(names.get(x.user_id)||x.user_id.slice(0,8))}</td><td>${esc(x.employer_name)}</td><td>${fmt(x.employment_start)}</td><td>${esc(x.employment_status)}</td><td><button onclick="verifyEmployment('${x.id}')">Mark verified</button></td></tr>`).join("")||'<tr><td colspan="5" class="muted">No pending records.</td></tr>';
 }
 async function verifyEmployment(id){
