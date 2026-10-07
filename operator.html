@@ -36,7 +36,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:11px;border-bottom:1px s
     <section style="padding:42px 0 22px">
       <span class="badge">Admin portal</span>
       <h1 style="font-size:clamp(38px,7vw,66px);letter-spacing:-2px;margin:12px 0 8px">Control room.</h1>
-      <p class="muted">Member growth, verification integrity, and funnel activity in one place.</p>
+      <p class="muted">Member growth, verification integrity, founding access, and funnel activity in one place.</p>
     </section>
 
     <div class="grid">
@@ -50,6 +50,17 @@ table{width:100%;border-collapse:collapse}th,td{padding:11px;border-bottom:1px s
       <div class="card metric"><span class="muted">Cornerstones</span><strong id="cornerstoneCount">—</strong></div>
     </div>
 
+
+    <div class="section">
+      <div class="row"><h2>Founding era control</h2><span id="programBadge" class="badge">Loading…</span></div>
+      <div class="card">
+        <p class="muted">There is no numerical founder cap. Founding status remains available during prelaunch and closes when You Paid enters public launch.</p>
+        <div class="row">
+          <div><strong id="programStatusText">Checking status…</strong><div class="muted" id="programDates" style="margin-top:5px"></div></div>
+          <button id="toggleFounderProgram" class="secondary">Change status</button>
+        </div>
+      </div>
+    </div>
 
     <div class="section">
       <h2>Founding access pipeline</h2>
@@ -98,14 +109,17 @@ async function gate(){
 function showAuth(msg=""){el("authView").classList.remove("hidden");el("adminView").classList.add("hidden");el("signOut").classList.add("hidden");if(msg)el("authMsg").textContent=msg}
 
 async function loadDashboard(){
-  const [leads,members,pending,cycles,founderIntents,founderMemberships,founderContributions] = await Promise.all([
+  const [leads,members,pending,cycles,founderIntents,founderMemberships,founderContributions,founderProgram,checkoutSessions,termAcceptances] = await Promise.all([
     sb.from("waitlist_leads").select("first_name,email,work_type,referral_intent,created_at").order("created_at",{ascending:false}).limit(25),
     sb.from("member_profiles").select("user_id,display_name,member_status,joined_at").order("joined_at",{ascending:false}).limit(25),
     sb.from("employment_records").select("id,user_id,employer_name,employment_start,employment_status,verification_status").eq("verification_status","pending").order("created_at",{ascending:true}).limit(50),
     sb.from("monthly_work_cycles").select("id",{count:"exact",head:true}).eq("cycle_status","verified"),
     sb.from("founder_intents").select("user_id,tier_code,amount_cents,status,selected_at").order("selected_at",{ascending:false}).limit(50),
     sb.from("founder_memberships").select("user_id,tier_code,status,secured_at,contribution_total_cents").order("secured_at",{ascending:false}).limit(50),
-    sb.from("founder_contributions").select("amount_cents,status")
+    sb.from("founder_contributions").select("amount_cents,status"),
+    sb.from("founder_program").select("*").eq("id",1).maybeSingle(),
+    sb.from("founder_checkout_sessions").select("id,status",{count:"exact"}),
+    sb.from("founder_terms_acceptances").select("id",{count:"exact",head:true})
   ]);
   const [leadCount,memberCount,pendingCount,founderIntentCount,founderSecuredCount,cornerstoneCount] = await Promise.all([
     sb.from("waitlist_leads").select("lead_id",{count:"exact",head:true}),
@@ -119,6 +133,15 @@ async function loadDashboard(){
   el("founderIntentCount").textContent=founderIntentCount.count??0;el("founderSecuredCount").textContent=founderSecuredCount.count??0;el("cornerstoneCount").textContent=cornerstoneCount.count??0;
   const paidRevenue=(founderContributions.data||[]).filter(x=>x.status==="paid").reduce((sum,x)=>sum+Number(x.amount_cents||0),0);
   el("founderRevenue").textContent="$"+(paidRevenue/100).toFixed(2);
+  const program=founderProgram.data;
+  if(program){
+    const open=program.status==="open";
+    el("programBadge").textContent=open?"OPEN":"CLOSED";
+    el("programStatusText").textContent=open?"Founding era is accepting new selections.":"Founding era is closed to new selections.";
+    el("programDates").textContent=open?("Opened "+fmt(program.opened_at)):("Closed "+fmt(program.closed_at||program.public_launch_at));
+    el("toggleFounderProgram").textContent=open?"Close at public launch":"Reopen founding era";
+    el("toggleFounderProgram").dataset.next=open?"closed":"open";
+  }
 
   el("leadRows").innerHTML=(leads.data||[]).map(x=>`<tr><td>${esc(x.first_name)}</td><td>${esc(x.email)}</td><td>${esc(x.work_type)}</td><td>${esc(x.referral_intent)}</td><td>${fmt(x.created_at)}</td></tr>`).join("")||'<tr><td colspan="5" class="muted">No leads.</td></tr>';
   el("memberRows").innerHTML=(members.data||[]).map(x=>`<tr><td>${esc(x.display_name||"Member")}</td><td>${esc(x.member_status)}</td><td>${fmt(x.joined_at)}</td></tr>`).join("")||'<tr><td colspan="3" class="muted">No members.</td></tr>';
@@ -142,6 +165,20 @@ async function verifyEmployment(id){
 el("signIn").onclick=async()=>{el("authMsg").textContent="Signing in…";const {error}=await sb.auth.signInWithPassword({email:el("email").value.trim(),password:el("password").value});if(error){el("authMsg").textContent=error.message;return}await gate()};
 el("signOut").onclick=async()=>{await sb.auth.signOut();showAuth()};
 el("refresh").onclick=loadDashboard;
+el("toggleFounderProgram").onclick=async()=>{
+  const next=el("toggleFounderProgram").dataset.next;
+  if(!next)return;
+  const word=next==="closed"?"CLOSE":"REOPEN";
+  const message=next==="closed"
+    ?"Close the Founding Era now? New founding selections will stop immediately and the close/public-launch timestamp will be recorded."
+    :"Reopen the Founding Era? New founding selections will become available again.";
+  if(!confirm(message))return;
+  const typed=prompt("Type "+word+" to confirm.");
+  if(typed!==word)return;
+  const {error}=await sb.rpc("set_founder_program_status",{p_status:next});
+  if(error){alert(error.message);return}
+  await loadDashboard();
+};
 sb.auth.onAuthStateChange(()=>gate());gate();
 </script>
 </body>

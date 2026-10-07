@@ -27,7 +27,7 @@ button,.btn{border:0;border-radius:14px;padding:14px 17px;font-weight:900;cursor
   <div class="eyebrow">The You Paid Founding Era</div>
   <h1>No founder cap.<br>Only a closing chapter.</h1>
   <p class="lede">Anyone who secures Founding status before You Paid enters public launch belongs to the founding era. Choose the level of future founder privileges you want attached to your account.</p>
-  <div class="truth"><strong>Real scarcity:</strong> Founding status is open during prelaunch and closes when You Paid enters public launch. We do not use fake spot counts or resetting countdowns.</div>
+  <div class="truth" style="display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap"><span><strong>Real scarcity:</strong> Founding status is open during prelaunch and closes when You Paid enters public launch. No fake spot counts. No resetting countdowns.</span><strong id="programState">Checking status…</strong></div>
 </section>
 
 <section class="tiers" id="tiers">
@@ -100,10 +100,10 @@ button,.btn{border:0;border-radius:14px;padding:14px 17px;font-weight:900;cursor
       <div class="statusbox">
         <div class="statuslabel">Status</div><div id="founderStatus" class="statusvalue">Not selected</div>
         <div class="statuslabel" style="margin-top:15px">Selected level</div><div id="founderTier" class="statusvalue">—</div>
-        <div class="statuslabel" style="margin-top:15px">Payment</div><div id="paymentStatus" class="statusvalue">Not started</div>
+        <div class="statuslabel" style="margin-top:15px">Amount due</div><div id="amountDue" class="statusvalue">—</div><div class="statuslabel" style="margin-top:15px">Payment</div><div id="paymentStatus" class="statusvalue">Not started</div>
       </div>
     </div>
-    <div id="checkoutNotice" class="truth" style="margin-top:18px">Checkout activation is being finalized. Your selection can be saved now, but Founding status is only secured after successful payment.</div>
+    <div id="checkoutNotice" class="truth" style="margin-top:18px">Your tier selection can be saved now. Founding status is secured only after successful payment.</div><div id="termsBox" class="panel" style="margin:14px 0 0;padding:16px"><label style="display:flex;gap:10px;align-items:flex-start;margin:0"><input id="termsCheck" type="checkbox" style="width:auto;margin:3px 0 0"><span>I have read and agree to the <a href="/founder-terms.html" target="_blank" style="color:var(--lime)">Founding Access Terms</a>.</span></label><div class="actions"><button id="acceptTerms" class="secondary">Accept terms</button><button id="paymentPending" class="primary" disabled>Secure payment activation pending</button></div><div id="termsMsg" class="msg">Payment processing is not live yet. No charge will be attempted from this page until the secure payment rail is activated.</div></div>
   </div>
 </section>
 
@@ -126,29 +126,56 @@ const FUNNEL="https://xknfxcyezchtypaisieu.supabase.co/functions/v1/capture-funn
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const el=id=>document.getElementById(id);
 let pendingTier=new URLSearchParams(location.search).get("tier");
+let foundingProgramOpen=true;
+let foundingTermsVersion=null;
 if(!["founder","builder","cornerstone"].includes(pendingTier)) pendingTier=null;
 
 function sessionId(){let id=sessionStorage.getItem("youpaid_session_id");if(!id){id=crypto.randomUUID?crypto.randomUUID():"sess_"+Date.now()+"_"+Math.random().toString(36).slice(2);sessionStorage.setItem("youpaid_session_id",id)}return id}
 async function track(event_name,metadata={}){try{await fetch(FUNNEL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({type:"event",event_name,session_id:sessionId(),page_url:location.href,referrer:document.referrer||null,metadata})})}catch{}}
 track("founder_view");
 
+async function loadProgramState(){
+  const {data,error}=await sb.from("founder_program").select("status,opened_at,closed_at,public_launch_at,terms_version").eq("id",1).maybeSingle();
+  if(error||!data)return;
+  foundingProgramOpen=data.status==="open";
+  foundingTermsVersion=data.terms_version||null;
+  el("programState").textContent=foundingProgramOpen?"OPEN NOW":"CLOSED";
+  if(!foundingProgramOpen){
+    document.querySelectorAll(".tierBtn").forEach(b=>{b.disabled=true;b.textContent="Founding era closed"});
+  }
+}
+
 function tierName(code){return ({founder:"Founding Member",builder:"Founding Builder",cornerstone:"Founding Cornerstone"})[code]||"—"}
 function tierAmount(code){return ({founder:"$1",builder:"$10",cornerstone:"$100"})[code]||"—"}
+function tierRank(code){return ({founder:1,builder:2,cornerstone:3})[code]||0}
 
 async function refreshFounder(){
   const {data:{session}}=await sb.auth.getSession();
   el("signedOut").classList.toggle("hidden",!!session);
   el("signedIn").classList.toggle("hidden",!session);
   if(!session)return;
-  const [{data:intent},{data:membership}] = await Promise.all([
+  const [{data:intent},{data:membership},{data:termsAcceptance}] = await Promise.all([
     sb.from("founder_intents").select("*").eq("user_id",session.user.id).maybeSingle(),
-    sb.from("founder_memberships").select("*").eq("user_id",session.user.id).maybeSingle()
+    sb.from("founder_memberships").select("*").eq("user_id",session.user.id).maybeSingle(),
+    foundingTermsVersion ? sb.from("founder_terms_acceptances").select("*").eq("user_id",session.user.id).eq("terms_version",foundingTermsVersion).maybeSingle() : Promise.resolve({data:null})
   ]);
-  if(membership){
+  const upgradePending=!!(membership&&intent&&tierRank(intent.tier_code)>tierRank(membership.tier_code)&&["selected","checkout_pending"].includes(intent.status));
+  if(termsAcceptance){el("termsCheck").checked=true;el("termsCheck").disabled=true;el("acceptTerms").textContent="Terms accepted ✓";el("acceptTerms").disabled=true;el("termsMsg").textContent="Founding Access Terms accepted for this program version. Secure payment processing is the remaining activation step."}
+  else{el("termsCheck").checked=false;el("termsCheck").disabled=false;el("acceptTerms").textContent="Accept terms";el("acceptTerms").disabled=false}
+  if(upgradePending){
+    el("founderHeading").textContent="Upgrade to "+tierName(intent.tier_code)+" selected";
+    el("founderCopy").textContent="Your existing "+tierName(membership.tier_code)+" status remains secured. The upgrade becomes effective only after the additional payment succeeds.";
+    el("founderStatus").textContent="Secured + upgrade pending";
+    el("founderTier").textContent=tierName(membership.tier_code)+" → "+tierName(intent.tier_code);
+    el("amountDue").textContent="$"+(Number(intent.amount_cents||0)/100).toFixed(2);
+    el("amountDue").textContent="$"+(Number(intent.amount_cents||0)/100).toFixed(2);
+    el("paymentStatus").textContent=intent.status==="checkout_pending"?"Checkout pending":"Awaiting checkout";
+  }else if(membership){
     el("founderHeading").textContent=membership.tier_code==="cornerstone"?"You’re a Founding Cornerstone.":"Your Founding status is secured.";
     el("founderCopy").textContent="Your founding level is secured and attached to your You Paid account.";
     el("founderStatus").textContent="Secured ✓";
     el("founderTier").textContent=tierName(membership.tier_code);
+    el("amountDue").textContent="$0.00";
     el("paymentStatus").textContent="Paid";
     el("checkoutNotice").textContent="Your Founding status is secured. If higher founding levels remain available before public launch, the system may allow an upgrade.";
     el("checkoutNotice").classList.add("ok");
@@ -161,12 +188,13 @@ async function refreshFounder(){
   }else{
     el("founderHeading").textContent="Choose a level above";
     el("founderCopy").textContent="Your account is ready. Choose the founding level you want to secure.";
-    el("founderStatus").textContent="Not selected";el("founderTier").textContent="—";el("paymentStatus").textContent="Not started";
+    el("founderStatus").textContent="Not selected";el("founderTier").textContent="—";el("amountDue").textContent="—";el("paymentStatus").textContent="Not started";
   }
-  if(pendingTier){await chooseTier(pendingTier);pendingTier=null}
+  if(pendingTier){const nextTier=pendingTier;pendingTier=null;await chooseTier(nextTier)}
 }
 
 async function chooseTier(code){
+  if(!foundingProgramOpen){alert("The You Paid founding era is closed.");return}
   const {data:{session}}=await sb.auth.getSession();
   if(!session){
     pendingTier=code;
@@ -202,8 +230,17 @@ el("signIn").onclick=async()=>{
   await track("founder_auth",{mode:"signin"});await refreshFounder();
 };
 el("signOut").onclick=async()=>{await sb.auth.signOut();await refreshFounder()};
+el("acceptTerms").onclick=async()=>{
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session){alert("Sign in first.");return}
+  if(!el("termsCheck").checked){el("termsMsg").textContent="Check the box after reading the Founding Access Terms.";el("termsMsg").className="msg warn";return}
+  const {error}=await sb.rpc("accept_founder_terms");
+  if(error){el("termsMsg").textContent=error.message;el("termsMsg").className="msg danger";return}
+  el("termsMsg").textContent="Terms accepted. Your selected founding level is ready for secure payment activation.";el("termsMsg").className="msg ok";
+  await refreshFounder();
+};
 sb.auth.onAuthStateChange(()=>refreshFounder());
-refreshFounder();
+loadProgramState().then(refreshFounder);
 </script>
 </body>
 </html>
