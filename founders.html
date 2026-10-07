@@ -160,6 +160,8 @@ async function refreshFounder(){
     foundingTermsVersion ? sb.from("founder_terms_acceptances").select("*").eq("user_id",session.user.id).eq("terms_version",foundingTermsVersion).maybeSingle() : Promise.resolve({data:null})
   ]);
   const upgradePending=!!(membership&&intent&&tierRank(intent.tier_code)>tierRank(membership.tier_code)&&["selected","checkout_pending"].includes(intent.status));
+  el("checkoutNotice").classList.remove("ok");
+  el("checkoutNotice").textContent="Your tier selection can be saved now. Founding status is secured only after successful payment.";
   if(termsAcceptance){el("termsCheck").checked=true;el("termsCheck").disabled=true;el("acceptTerms").textContent="Terms accepted ✓";el("acceptTerms").disabled=true;el("termsMsg").textContent="Founding Access Terms accepted for this program version. Secure payment processing is the remaining activation step."}
   else{el("termsCheck").checked=false;el("termsCheck").disabled=false;el("acceptTerms").textContent="Accept terms";el("acceptTerms").disabled=false}
   if(upgradePending){
@@ -167,7 +169,6 @@ async function refreshFounder(){
     el("founderCopy").textContent="Your existing "+tierName(membership.tier_code)+" status remains secured. The upgrade becomes effective only after the additional payment succeeds.";
     el("founderStatus").textContent="Secured + upgrade pending";
     el("founderTier").textContent=tierName(membership.tier_code)+" → "+tierName(intent.tier_code);
-    el("amountDue").textContent="$"+(Number(intent.amount_cents||0)/100).toFixed(2);
     el("amountDue").textContent="$"+(Number(intent.amount_cents||0)/100).toFixed(2);
     el("paymentStatus").textContent=intent.status==="checkout_pending"?"Checkout pending":"Awaiting checkout";
   }else if(membership){
@@ -184,6 +185,7 @@ async function refreshFounder(){
     el("founderCopy").textContent="Your selection is saved. It becomes secured only after successful payment.";
     el("founderStatus").textContent="Selected";
     el("founderTier").textContent=tierName(intent.tier_code)+" · "+tierAmount(intent.tier_code);
+    el("amountDue").textContent="$"+(Number(intent.amount_cents||0)/100).toFixed(2);
     el("paymentStatus").textContent=intent.status==="checkout_pending"?"Checkout pending":"Awaiting checkout";
   }else{
     el("founderHeading").textContent="Choose a level above";
