@@ -16,10 +16,10 @@ input,select{width:100%;padding:12px 13px;border-radius:11px;border:1px solid va
 </head>
 <body>
 <div class="wrap">
-  <div class="top"><div class="brand">You <span>Paid</span></div><div class="actions"><a class="btn secondary" href="/founders.html">Founding Access</a><a class="btn" href="/">Home</a><button id="signOut" class="secondary hidden">Sign out</button></div></div>
+  <div class="top"><div class="brand">You <span>Paid</span></div><div class="actions"><a class="btn secondary" href="/verification-standard.html">Verification Standard</a><a class="btn secondary" href="/faq.html">FAQ</a><a class="btn secondary" href="/founders.html">Founding Access</a><a class="btn" href="/">Home</a><button id="signOut" class="secondary hidden">Sign out</button></div></div>
 
   <section id="authView" class="auth card">
-    <div class="status">Founding member access</div>
+    <div class="status">Member access</div>
     <h1>Your work history starts here.</h1>
     <p class="muted">Create a secure You Paid account to begin organizing verified employment and work-presence data. Reporting is not yet active.</p>
     <label>Email<input id="email" type="email" autocomplete="email" placeholder="you@example.com"></label>
@@ -125,7 +125,7 @@ async function refresh(){
   const founderAmounts={founder:"$1",builder:"$10",cornerstone:"$100"};
   if(founderMembership){
     el("founderTitle").textContent=founderNames[founderMembership.tier_code]+" secured";
-    el("founderDetail").textContent="Your founding level is secured and permanently attached to your You Paid member record, subject to the Founding Access Terms.";
+    el("founderDetail").textContent="Your founding level is secured and recorded on your You Paid member account, subject to the Founding Access Terms.";
     el("founderSelected").textContent=founderNames[founderMembership.tier_code]+" · "+founderAmounts[founderMembership.tier_code];
     el("founderPayment").textContent="Paid";
     el("founderSecured").textContent="Secured ✓";
