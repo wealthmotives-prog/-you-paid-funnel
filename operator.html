@@ -36,7 +36,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:11px;border-bottom:1px s
     <section style="padding:42px 0 22px">
       <span class="badge">Admin portal</span>
       <h1 style="font-size:clamp(38px,7vw,66px);letter-spacing:-2px;margin:12px 0 8px">Control room.</h1>
-      <p class="muted">Member growth, verification integrity, founding access, and funnel activity in one place.</p>
+      <p class="muted">Member growth, historical verification, disputes, data providers, reporting readiness, founding access, and funnel activity in one place.</p>
     </section>
 
     <div class="grid">
@@ -48,6 +48,10 @@ table{width:100%;border-collapse:collapse}th,td{padding:11px;border-bottom:1px s
       <div class="card metric"><span class="muted">Secured founders</span><strong id="founderSecuredCount">—</strong></div>
       <div class="card metric"><span class="muted">Founding revenue</span><strong id="founderRevenue">—</strong></div>
       <div class="card metric"><span class="muted">Cornerstones</span><strong id="cornerstoneCount">—</strong></div>
+      <div class="card metric"><span class="muted">Historical verified events</span><strong id="historicalCount">—</strong></div>
+      <div class="card metric"><span class="muted">Open disputes</span><strong id="disputeCount">—</strong></div>
+      <div class="card metric"><span class="muted">Data providers</span><strong id="providerCount">—</strong></div>
+      <div class="card metric"><span class="muted">Reporting destinations</span><strong id="destinationCount">—</strong></div>
     </div>
 
 
@@ -66,6 +70,35 @@ table{width:100%;border-collapse:collapse}th,td{padding:11px;border-bottom:1px s
       <h2>Founding access pipeline</h2>
       <div class="card scroll">
         <table><thead><tr><th>Member</th><th>Level</th><th>Amount</th><th>Status</th><th>Selected</th></tr></thead><tbody id="founderRows"></tbody></table>
+      </div>
+    </div>
+
+
+    <div class="section">
+      <h2>Accuracy & dispute queue</h2>
+      <div class="card scroll">
+        <table><thead><tr><th>Member</th><th>Received</th><th>Issue</th><th>Status</th><th>Resolution</th></tr></thead><tbody id="disputeRows"></tbody></table>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Data-provider network</h2>
+      <div class="card scroll">
+        <table><thead><tr><th>Provider</th><th>Type</th><th>Status</th><th>Agreement effective</th></tr></thead><tbody id="providerRows"></tbody></table>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Reporting destinations</h2>
+      <div class="card scroll">
+        <table><thead><tr><th>Destination</th><th>Type</th><th>Status</th><th>Format</th><th>Agreement effective</th></tr></thead><tbody id="destinationRows"></tbody></table>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Recent reporting transmissions</h2>
+      <div class="card scroll">
+        <table><thead><tr><th>Member</th><th>Type</th><th>Period</th><th>Status</th><th>Sent</th></tr></thead><tbody id="transmissionRows"></tbody></table>
       </div>
     </div>
 
@@ -109,7 +142,7 @@ async function gate(){
 function showAuth(msg=""){el("authView").classList.remove("hidden");el("adminView").classList.add("hidden");el("signOut").classList.add("hidden");if(msg)el("authMsg").textContent=msg}
 
 async function loadDashboard(){
-  const [leads,members,pending,cycles,founderIntents,founderMemberships,founderContributions,founderProgram,checkoutSessions,termAcceptances] = await Promise.all([
+  const [leads,members,pending,cycles,founderIntents,founderMemberships,founderContributions,founderProgram,checkoutSessions,termAcceptances,disputes,providers,destinations,transmissions] = await Promise.all([
     sb.from("waitlist_leads").select("first_name,email,work_type,referral_intent,created_at").order("created_at",{ascending:false}).limit(25),
     sb.from("member_profiles").select("user_id,display_name,member_status,joined_at").order("joined_at",{ascending:false}).limit(25),
     sb.from("employment_records").select("id,user_id,employer_name,employment_start,employment_status,verification_status").eq("verification_status","pending").order("created_at",{ascending:true}).limit(50),
@@ -119,18 +152,27 @@ async function loadDashboard(){
     sb.from("founder_contributions").select("amount_cents,status"),
     sb.from("founder_program").select("*").eq("id",1).maybeSingle(),
     sb.from("founder_checkout_sessions").select("id,status",{count:"exact"}),
-    sb.from("founder_terms_acceptances").select("id",{count:"exact",head:true})
+    sb.from("founder_terms_acceptances").select("id",{count:"exact",head:true}),
+    sb.from("consumer_record_disputes").select("id,user_id,consumer_statement,dispute_reason,status,received_at,resolution_summary").order("received_at",{ascending:false}).limit(50),
+    sb.from("data_providers").select("id,provider_name,provider_type,status,agreement_effective_at").order("created_at",{ascending:false}).limit(50),
+    sb.from("reporting_destinations").select("id,destination_name,destination_type,status,format_name,agreement_effective_at").order("created_at",{ascending:false}).limit(50),
+    sb.from("reporting_transmissions").select("id,user_id,transmission_type,period_start,period_end,status,sent_at").order("created_at",{ascending:false}).limit(50)
   ]);
-  const [leadCount,memberCount,pendingCount,founderIntentCount,founderSecuredCount,cornerstoneCount] = await Promise.all([
+  const [leadCount,memberCount,pendingCount,founderIntentCount,founderSecuredCount,cornerstoneCount,historicalCount,disputeCount,providerCount,destinationCount] = await Promise.all([
     sb.from("waitlist_leads").select("lead_id",{count:"exact",head:true}),
     sb.from("member_profiles").select("user_id",{count:"exact",head:true}),
     sb.from("employment_records").select("id",{count:"exact",head:true}).eq("verification_status","pending"),
     sb.from("founder_intents").select("user_id",{count:"exact",head:true}),
     sb.from("founder_memberships").select("user_id",{count:"exact",head:true}).eq("status","secured"),
-    sb.from("founder_memberships").select("user_id",{count:"exact",head:true}).eq("status","secured").eq("tier_code","cornerstone")
+    sb.from("founder_memberships").select("user_id",{count:"exact",head:true}).eq("status","secured").eq("tier_code","cornerstone"),
+    sb.from("verification_events").select("id",{count:"exact",head:true}).eq("verification_status","verified").eq("is_historical",true),
+    sb.from("consumer_record_disputes").select("id",{count:"exact",head:true}).in("status",["received","investigating","source_contacted"]),
+    sb.from("data_providers").select("id",{count:"exact",head:true}),
+    sb.from("reporting_destinations").select("id",{count:"exact",head:true})
   ]);
   el("leadCount").textContent=leadCount.count??0;el("memberCount").textContent=memberCount.count??0;el("pendingCount").textContent=pendingCount.count??0;el("cycleCount").textContent=cycles.count??0;
   el("founderIntentCount").textContent=founderIntentCount.count??0;el("founderSecuredCount").textContent=founderSecuredCount.count??0;el("cornerstoneCount").textContent=cornerstoneCount.count??0;
+  el("historicalCount").textContent=historicalCount.count??0;el("disputeCount").textContent=disputeCount.count??0;el("providerCount").textContent=providerCount.count??0;el("destinationCount").textContent=destinationCount.count??0;
   const paidRevenue=(founderContributions.data||[]).filter(x=>x.status==="paid").reduce((sum,x)=>sum+Number(x.amount_cents||0),0);
   el("founderRevenue").textContent="$"+(paidRevenue/100).toFixed(2);
   const program=founderProgram.data;
@@ -149,17 +191,61 @@ async function loadDashboard(){
 
   const founderNames={founder:"Founding Member",builder:"Founding Builder",cornerstone:"Founding Cornerstone"};
   const names = new Map((members.data||[]).map(m=>[m.user_id,m.display_name||m.user_id.slice(0,8)]));
+
+  el("disputeRows").innerHTML=(disputes.data||[]).map(x=>`<tr><td>${esc(names.get(x.user_id)||x.user_id.slice(0,8))}</td><td>${fmt(x.received_at)}</td><td>${esc(x.consumer_statement||x.dispute_reason)}</td><td>${esc(x.status)}</td><td>${esc(x.resolution_summary||"—")}</td></tr>`).join("")||'<tr><td colspan="5" class="muted">No disputes.</td></tr>';
+  el("providerRows").innerHTML=(providers.data||[]).map(x=>`<tr><td>${esc(x.provider_name)}</td><td>${esc(x.provider_type)}</td><td>${esc(x.status)}</td><td>${fmt(x.agreement_effective_at)}</td></tr>`).join("")||'<tr><td colspan="4" class="muted">No data providers yet.</td></tr>';
+  el("destinationRows").innerHTML=(destinations.data||[]).map(x=>`<tr><td>${esc(x.destination_name)}</td><td>${esc(x.destination_type)}</td><td>${esc(x.status)}</td><td>${esc(x.format_name||"—")}</td><td>${fmt(x.agreement_effective_at)}</td></tr>`).join("")||'<tr><td colspan="5" class="muted">No reporting destinations yet.</td></tr>';
+  el("transmissionRows").innerHTML=(transmissions.data||[]).map(x=>{const period=x.period_start?(fmt(x.period_start)+(x.period_end?" – "+fmt(x.period_end):"")):"—";return `<tr><td>${esc(names.get(x.user_id)||x.user_id.slice(0,8))}</td><td>${esc(x.transmission_type)}</td><td>${period}</td><td>${esc(x.status)}</td><td>${fmt(x.sent_at)}</td></tr>`}).join("")||'<tr><td colspan="5" class="muted">No reporting transmissions yet.</td></tr>';
+
   el("founderRows").innerHTML=(founderIntents.data||[]).map(x=>`<tr><td>${esc(names.get(x.user_id)||x.user_id.slice(0,8))}</td><td>${esc(founderNames[x.tier_code]||x.tier_code)}</td><td>${(Number(x.amount_cents||0)/100).toFixed(2)}</td><td>${esc(x.status)}</td><td>${fmt(x.selected_at)}</td></tr>`).join("")||'<tr><td colspan="5" class="muted">No founder selections yet.</td></tr>';
 
   el("pendingRows").innerHTML=(pending.data||[]).map(x=>`<tr><td>${esc(names.get(x.user_id)||x.user_id.slice(0,8))}</td><td>${esc(x.employer_name)}</td><td>${fmt(x.employment_start)}</td><td>${esc(x.employment_status)}</td><td><button onclick="verifyEmployment('${x.id}')">Mark verified</button></td></tr>`).join("")||'<tr><td colspan="5" class="muted">No pending records.</td></tr>';
 }
 async function verifyEmployment(id){
-  if(!confirm("Mark this employment record verified?")) return;
-  const {data:record,error:readError}=await sb.from("employment_records").select("user_id").eq("id",id).single();
+  const sourceEntity=prompt("Source entity that supports this employment start (employer, payroll provider, document issuer, etc.):");
+  if(!sourceEntity||sourceEntity.trim().length<2)return;
+  const levelRaw=prompt("Evidence level (2, 3, or 4). L1 self-attestation cannot independently create verified status:");
+  const evidenceLevel=Number(levelRaw);
+  if(![2,3,4].includes(evidenceLevel)){alert("Evidence level must be 2, 3, or 4.");return}
+  if(!confirm("Verify this employment start using "+sourceEntity.trim()+" at evidence level L"+evidenceLevel+"?"))return;
+
+  const {data:record,error:readError}=await sb.from("employment_records").select("user_id,employment_start").eq("id",id).single();
   if(readError){alert(readError.message);return}
-  const {error}=await sb.from("employment_records").update({verification_status:"verified",updated_at:new Date().toISOString()}).eq("id",id);
+  const now=new Date().toISOString();
+  const {error}=await sb.from("employment_records").update({
+    verification_status:"verified",
+    source_type:"manual_review",
+    source_entity_name:sourceEntity.trim(),
+    evidence_level:evidenceLevel,
+    employment_start_verified_at:now,
+    updated_at:now
+  }).eq("id",id);
   if(error){alert(error.message);return}
-  await sb.from("verification_audit_log").insert({user_id:record.user_id,action:"admin_employment_verified",details:{employment_id:id}});
+
+  const historical=new Date(record.employment_start+"T00:00:00").getTime()<Date.now()-86400000;
+  const {data:event,error:eventError}=await sb.from("verification_events").insert({
+    user_id:record.user_id,
+    employment_id:id,
+    event_type:"employment_status",
+    period_start:record.employment_start,
+    period_end:record.employment_start,
+    source_type:"manual_review",
+    source_entity_name:sourceEntity.trim(),
+    verification_method:"operator_review",
+    evidence_level:evidenceLevel,
+    verification_status:"verified",
+    verified_at:now,
+    is_historical:historical,
+    evidence_summary:"Employment commencement supported through operator-reviewed evidence."
+  }).select("id").single();
+  if(eventError){alert("Employment verified, but verification-event creation failed: "+eventError.message);await loadDashboard();return}
+
+  await sb.from("verification_audit_log").insert({
+    user_id:record.user_id,
+    verification_event_id:event.id,
+    action:"admin_employment_start_verified",
+    details:{employment_id:id,source_entity_name:sourceEntity.trim(),evidence_level:evidenceLevel,is_historical:historical}
+  });
   await loadDashboard();
 }
 el("signIn").onclick=async()=>{el("authMsg").textContent="Signing in…";const {error}=await sb.auth.signInWithPassword({email:el("email").value.trim(),password:el("password").value});if(error){el("authMsg").textContent=error.message;return}await gate()};
