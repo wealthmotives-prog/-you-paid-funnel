@@ -39,7 +39,7 @@ button,input,select{font:inherit}
 .pill{font-size:11px;color:#afbac5;border:1px solid var(--line);padding:7px 10px;border-radius:999px;background:rgba(255,255,255,.015)}
 .pill:hover{border-color:rgba(140,255,102,.45);color:var(--text)}
 .btn{display:inline-flex;align-items:center;justify-content:center;padding:14px 18px;border-radius:15px;border:1px solid transparent;font-weight:900;cursor:pointer;transition:.18s transform,.18s border-color,.18s opacity}
-.btn:hover{transform:translateY(-1px)}
+.btn:hover{transform:translateY(-1px)}a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
 .primary{background:var(--accent);color:#071007}
 .secondary{background:#171f28;color:var(--text);border-color:var(--line)}
 .ghost{background:transparent;color:var(--text);border-color:var(--line)}
@@ -218,10 +218,10 @@ footer{border-top:1px solid var(--line);padding:42px 0 60px;color:#7f8c98;font-s
         <div class="note">Simulation only · not a real consumer report</div>
       </div>
       <div class="demo-tabs">
-        <button class="tab active" data-state="historical">Historical</button>
-        <button class="tab" data-state="current">Current</button>
-        <button class="tab" data-state="disputed">Disputed</button>
-        <button class="tab" data-state="reported">Reported</button>
+        <button class="tab active" data-state="historical" aria-pressed="true">Historical</button>
+        <button class="tab" data-state="current" aria-pressed="false">Current</button>
+        <button class="tab" data-state="disputed" aria-pressed="false">Disputed</button>
+        <button class="tab" data-state="reported" aria-pressed="false">Reported</button>
       </div>
       <div class="ledger-grid">
         <div class="ledger-metric"><span>Underlying event</span><strong id="m1">Jul 2024</strong></div>
@@ -335,7 +335,7 @@ footer{border-top:1px solid var(--line);padding:42px 0 60px;color:#7f8c98;font-s
 <footer>
   <div class="wrap">
     <div class="footerlinks">
-      <a href="/how-it-works.html">How It Works</a><a href="/about.html">Who We Are</a><a href="/building.html">What We're Building</a><a href="/transparency.html">Trust</a><a href="/verification-standard.html">Verification Standard</a><a href="/status.html">Product Status</a><a href="/security.html">Security & Data</a><a href="/faq.html">FAQ</a><a href="/changelog.html">Changelog</a><a href="/for-employers.html">Employers</a><a href="/data-network.html">Data Network</a><a href="/quokka.html">Quokka Mission</a><a href="/founders.html">Founding Access</a><a href="/privacy.html" data-track="footer_privacy">Privacy</a><a href="/terms.html" data-track="footer_terms">Terms</a><a href="/product-disclosure.html" data-track="footer_disclosure">Disclosure</a><a href="/contact.html" data-track="footer_contact">Contact</a>
+      <a href="/how-it-works.html">How It Works</a><a href="/about.html">Who We Are</a><a href="/building.html">What We're Building</a><a href="/transparency.html">Trust</a><a href="/verification-standard.html">Verification Standard</a><a href="/status.html">Product Status</a><a href="/security.html">Security & Data</a><a href="/faq.html">FAQ</a><a href="/changelog.html">Changelog</a><a href="/for-employers.html">Employers</a><a href="/data-network.html">Data Network</a><a href="/quokka.html">Quokka Mission</a><a href="/founders.html">Founding Access</a><a href="/privacy.html" data-track="footer_privacy">Privacy</a><a href="/data-requests.html">Data Requests</a><a href="/tracking-technologies.html">Tracking Notice</a><a href="/accessibility.html">Accessibility</a><a href="/refund-policy.html">Refunds</a><a href="/terms.html" data-track="footer_terms">Terms</a><a href="/product-disclosure.html" data-track="footer_disclosure">Disclosure</a><a href="/contact.html" data-track="footer_contact">Contact</a>
     </div>
     You Paid is operated by <a href="/operator.html" aria-label="850 Lifestyle LLC operator access">850 Lifestyle LLC</a> and is intended to be offered under the You Paid trade name. Prelaunch only.
   </div>
@@ -365,7 +365,7 @@ const demoStates={
  reported:{title:"Illustrative reporting transmission",m1:"Jan–Sep 2026",m2:"Oct 2026",m3:"Verified",m4:"Sent",chips:["Authorized destination","Historical transmission","Acknowledgement tracked"],copy:"This illustrates how a real transmission could appear after an authorized destination exists. You Paid does not currently represent nationwide bureau furnishing as live."}
 };
 document.querySelectorAll(".tab").forEach(btn=>btn.addEventListener("click",()=>{
-  document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));btn.classList.add("active");
+  document.querySelectorAll(".tab").forEach(x=>{x.classList.remove("active");x.setAttribute("aria-pressed","false")});btn.classList.add("active");btn.setAttribute("aria-pressed","true");
   const s=demoStates[btn.dataset.state];document.getElementById("demoTitle").textContent=s.title;
   ["m1","m2","m3","m4"].forEach(k=>document.getElementById(k).textContent=s[k]);
   document.getElementById("demoChips").innerHTML=s.chips.map(x=>'<span class="chip">'+x+'</span>').join("");
