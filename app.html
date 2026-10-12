@@ -107,6 +107,39 @@ input,select,textarea{width:100%;padding:12px 13px;border-radius:11px;border:1px
       </div>
     </div>
 
+
+    <div class="section-title"><h2>Privacy & data requests</h2></div>
+    <div class="card">
+      <p class="muted">Use this authenticated request channel for access, correction, deletion, restriction, marketing opt-out, source information, or sharing information. Verification-record accuracy disputes should continue to use the Corrections & disputes section above.</p>
+      <div class="row">
+        <label>Request type<select id="privacyRequestType">
+          <option value="access">Access my data</option>
+          <option value="correction">Correct account data</option>
+          <option value="deletion">Delete eligible data</option>
+          <option value="restriction">Restrict eligible processing</option>
+          <option value="marketing_opt_out">Marketing opt-out</option>
+          <option value="source_info">Tell me where data came from</option>
+          <option value="sharing_info">Tell me where data was shared</option>
+          <option value="other">Other privacy request</option>
+        </select></label>
+        <label>Request details<textarea id="privacyRequestDetails" placeholder="Describe exactly what you are requesting."></textarea></label>
+      </div>
+      <button id="submitPrivacyRequest">Submit privacy request</button>
+      <p id="privacyRequestMsg" class="muted"></p>
+      <div style="overflow:auto;margin-top:14px">
+        <table><thead><tr><th>Received</th><th>Type</th><th>Identity</th><th>Status</th><th>Decision</th></tr></thead><tbody id="privacyRequestRows"><tr><td colspan="5" class="muted">No privacy requests.</td></tr></tbody></table>
+      </div>
+      <p class="muted" style="margin-bottom:0">See <a href="/data-requests.html">Privacy & Data Requests</a> for additional information about identity verification and records that may need to be retained.</p>
+    </div>
+
+    <div class="section-title"><h2>Data permissions</h2></div>
+    <div class="card">
+      <div class="notice">You Paid does not treat general Terms acceptance as blanket permission for optional downstream sharing. Where consent is the basis for a specific future sharing use, the permission should be purpose-specific, versioned, and revocable where applicable.</div>
+      <div style="overflow:auto;margin-top:14px">
+        <table><thead><tr><th>Permission</th><th>Version</th><th>Scope</th><th>Status</th><th>Granted</th></tr></thead><tbody id="consentRows"><tr><td colspan="5" class="muted">No optional downstream sharing permissions granted.</td></tr></tbody></table>
+      </div>
+    </div>
+
     <div class="section-title"><h2>Monthly verification</h2></div>
     <div class="card">
       <div class="notice">Verification events and monthly cycles are read-only for members. They will be written only by approved verification workflows so the ledger remains auditable.</div>
@@ -136,7 +169,7 @@ async function refresh(){
   if(!logged) return;
 
   const uid = session.user.id;
-  const [{data:profile},{data:jobs},{data:cycles},{data:founderIntent},{data:founderMembership},{data:events},{data:disputes},{data:transmissions}] = await Promise.all([
+  const [{data:profile},{data:jobs},{data:cycles},{data:founderIntent},{data:founderMembership},{data:events},{data:disputes},{data:transmissions},{data:privacyRequests},{data:sharingConsents}] = await Promise.all([
     sb.from("member_profiles").select("*").eq("user_id",uid).maybeSingle(),
     sb.from("employment_records").select("*").eq("user_id",uid).order("employment_start",{ascending:false}),
     sb.from("monthly_work_cycles").select("*").eq("user_id",uid).order("cycle_month",{ascending:false}),
@@ -144,7 +177,9 @@ async function refresh(){
     sb.from("founder_memberships").select("*").eq("user_id",uid).maybeSingle(),
     sb.from("verification_events").select("id,event_type,occurred_at,period_start,period_end,source_type,source_entity_name,evidence_level,verification_status,verified_at,is_historical").eq("user_id",uid).order("period_start",{ascending:false}).limit(100),
     sb.from("consumer_record_disputes").select("id,verification_event_id,consumer_statement,dispute_reason,status,received_at,resolution_summary").eq("user_id",uid).order("received_at",{ascending:false}).limit(50),
-    sb.from("reporting_transmissions").select("id,transmission_type,period_start,period_end,status,sent_at,reporting_destinations(destination_name)").eq("user_id",uid).order("created_at",{ascending:false}).limit(50)
+    sb.from("reporting_transmissions").select("id,transmission_type,period_start,period_end,status,sent_at,reporting_destinations(destination_name)").eq("user_id",uid).order("created_at",{ascending:false}).limit(50),
+    sb.from("privacy_rights_requests").select("id,request_type,identity_status,status,received_at,decision_summary").eq("user_id",uid).order("received_at",{ascending:false}).limit(50),
+    sb.from("data_sharing_consents").select("id,consent_type,consent_version,scopes,status,granted_at,revoked_at").eq("user_id",uid).order("created_at",{ascending:false}).limit(50)
   ]);
 
   el("memberSince").textContent = profile ? fmtDate(profile.joined_at) : "Today";
@@ -203,6 +238,10 @@ async function refresh(){
     return `<tr><td>${escapeHtml(destination)}</td><td>${escapeHtml(t.transmission_type)}</td><td>${period}</td><td>${escapeHtml(t.status)}</td><td>${fmtDate(t.sent_at)}</td></tr>`;
   }).join("") : '<tr><td colspan="5" class="muted">No reporting transmissions yet.</td></tr>';
 
+  el("privacyRequestRows").innerHTML = privacyRequests?.length ? privacyRequests.map(r=>`<tr><td>${fmtDate(r.received_at)}</td><td>${escapeHtml(r.request_type.replaceAll("_"," "))}</td><td>${escapeHtml(r.identity_status)}</td><td>${escapeHtml(r.status)}</td><td>${escapeHtml(r.decision_summary||"—")}</td></tr>`).join("") : '<tr><td colspan="5" class="muted">No privacy requests.</td></tr>';
+
+  el("consentRows").innerHTML = sharingConsents?.length ? sharingConsents.map(s=>`<tr><td>${escapeHtml(s.consent_type.replaceAll("_"," "))}</td><td>${escapeHtml(s.consent_version)}</td><td>${escapeHtml((s.scopes||[]).join(", ")||"—")}</td><td>${escapeHtml(s.status)}</td><td>${fmtDate(s.granted_at)}</td></tr>`).join("") : '<tr><td colspan="5" class="muted">No optional downstream sharing permissions granted.</td></tr>';
+
   el("cycleRows").innerHTML = cycles?.length ? cycles.map(c=>`
     <tr><td>${fmtMonth(c.cycle_month)}</td><td>${c.verified_workdays}</td><td>${c.verified_clock_ins}</td><td>${escapeHtml(c.cycle_status)}</td></tr>`).join("") :
     '<tr><td colspan="4" class="muted">No verified cycles yet.</td></tr>';
@@ -229,6 +268,25 @@ el("signIn").onclick = async()=>{
 };
 
 el("signOut").onclick = async()=>{ await sb.auth.signOut(); refresh(); };
+
+el("submitPrivacyRequest").onclick = async()=>{
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session)return;
+  const details=el("privacyRequestDetails").value.trim();
+  if(details.length<10){el("privacyRequestMsg").textContent="Please describe the request in a little more detail.";return}
+  el("privacyRequestMsg").textContent="Submitting…";
+  const {error}=await sb.from("privacy_rights_requests").insert({
+    user_id:session.user.id,
+    requester_email:session.user.email||null,
+    request_type:el("privacyRequestType").value,
+    request_details:details,
+    intake_source:"member_portal"
+  });
+  if(error){el("privacyRequestMsg").textContent=error.message;return}
+  el("privacyRequestDetails").value="";
+  el("privacyRequestMsg").textContent="Request received. Its status will remain visible here.";
+  refresh();
+};
 
 el("submitDispute").onclick = async()=>{
   const {data:{session}}=await sb.auth.getSession();
