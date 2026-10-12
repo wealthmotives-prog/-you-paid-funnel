@@ -72,6 +72,42 @@ table{width:100%;border-collapse:collapse}th,td{padding:11px;border-bottom:1px s
       </div>
     </div>
 
+
+    <div class="section">
+      <h2>Privacy rights queue</h2>
+      <div class="card scroll">
+        <table><thead><tr><th>Member</th><th>Type</th><th>Identity</th><th>Status</th><th>Received</th><th>Decision</th></tr></thead><tbody id="privacyRows"></tbody></table>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Vendor risk register</h2>
+      <div class="card scroll">
+        <table><thead><tr><th>Vendor</th><th>Service</th><th>Access</th><th>Risk</th><th>Review</th><th>DPA</th></tr></thead><tbody id="vendorRiskRows"></tbody></table>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Retention schedule</h2>
+      <div class="card scroll">
+        <table><thead><tr><th>Category</th><th>Rule</th><th>Trigger</th><th>Status</th><th>Owner</th></tr></thead><tbody id="retentionRows"></tbody></table>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Security incidents</h2>
+      <div class="card scroll">
+        <table><thead><tr><th>Detected</th><th>Severity</th><th>Status</th><th>Title</th><th>Owner</th></tr></thead><tbody id="incidentRows"></tbody></table>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Downstream sharing consents</h2>
+      <div class="card scroll">
+        <table><thead><tr><th>Member</th><th>Type</th><th>Version</th><th>Scope</th><th>Status</th><th>Granted</th></tr></thead><tbody id="sharingConsentRows"></tbody></table>
+      </div>
+    </div>
+
     <div class="section">
       <div class="row"><h2>Founding era control</h2><span id="programBadge" class="badge">Loading…</span></div>
       <div class="card">
@@ -159,7 +195,7 @@ async function gate(){
 function showAuth(msg=""){el("authView").classList.remove("hidden");el("adminView").classList.add("hidden");el("signOut").classList.add("hidden");if(msg)el("authMsg").textContent=msg}
 
 async function loadDashboard(){
-  const [leads,members,pending,cycles,founderIntents,founderMemberships,founderContributions,founderProgram,checkoutSessions,termAcceptances,disputes,providers,destinations,transmissions,compliance] = await Promise.all([
+  const [leads,members,pending,cycles,founderIntents,founderMemberships,founderContributions,founderProgram,checkoutSessions,termAcceptances,disputes,providers,destinations,transmissions,compliance,privacyRequests,vendorRisk,retention,incidents,sharingConsents] = await Promise.all([
     sb.from("waitlist_leads").select("first_name,email,work_type,referral_intent,created_at").order("created_at",{ascending:false}).limit(25),
     sb.from("member_profiles").select("user_id,display_name,member_status,joined_at").order("joined_at",{ascending:false}).limit(25),
     sb.from("employment_records").select("id,user_id,employer_name,employment_start,employment_status,verification_status").eq("verification_status","pending").order("created_at",{ascending:true}).limit(50),
@@ -174,7 +210,12 @@ async function loadDashboard(){
     sb.from("data_providers").select("id,provider_name,provider_type,status,agreement_effective_at").order("created_at",{ascending:false}).limit(50),
     sb.from("reporting_destinations").select("id,destination_name,destination_type,status,format_name,agreement_effective_at").order("created_at",{ascending:false}).limit(50),
     sb.from("reporting_transmissions").select("id,user_id,transmission_type,period_start,period_end,status,sent_at").order("created_at",{ascending:false}).limit(50),
-    sb.from("compliance_controls").select("*").order("control_number",{ascending:true})
+    sb.from("compliance_controls").select("*").order("control_number",{ascending:true}),
+    sb.from("privacy_rights_requests").select("id,user_id,request_type,identity_status,status,received_at,decision_summary").order("received_at",{ascending:false}).limit(50),
+    sb.from("vendor_risk_register").select("vendor_name,service_category,access_level,risk_level,review_status,dpa_status").order("risk_level",{ascending:false}),
+    sb.from("retention_schedule").select("data_category,retention_rule,trigger_event,policy_status,owner_role").order("data_category",{ascending:true}),
+    sb.from("security_incidents").select("id,detected_at,severity,status,title,owner_role").order("detected_at",{ascending:false}).limit(50),
+    sb.from("data_sharing_consents").select("id,user_id,consent_type,consent_version,scopes,status,granted_at").order("granted_at",{ascending:false}).limit(50)
   ]);
   const [leadCount,memberCount,pendingCount,founderIntentCount,founderSecuredCount,cornerstoneCount,historicalCount,disputeCount,providerCount,destinationCount] = await Promise.all([
     sb.from("waitlist_leads").select("lead_id",{count:"exact",head:true}),
@@ -211,6 +252,13 @@ async function loadDashboard(){
 
   const founderNames={founder:"Founding Member",builder:"Founding Builder",cornerstone:"Founding Cornerstone"};
   const names = new Map((members.data||[]).map(m=>[m.user_id,m.display_name||m.user_id.slice(0,8)]));
+
+
+  el("privacyRows").innerHTML=(privacyRequests.data||[]).map(x=>`<tr><td>${esc(names.get(x.user_id)||x.user_id?.slice(0,8)||"email intake")}</td><td>${esc(x.request_type.replaceAll("_"," "))}</td><td>${esc(x.identity_status)}</td><td>${esc(x.status)}</td><td>${fmt(x.received_at)}</td><td>${esc(x.decision_summary||"—")}</td></tr>`).join("")||'<tr><td colspan="6" class="muted">No privacy requests.</td></tr>';
+  el("vendorRiskRows").innerHTML=(vendorRisk.data||[]).map(x=>`<tr><td>${esc(x.vendor_name)}</td><td>${esc(x.service_category)}</td><td>${esc(x.access_level)}</td><td>${esc(x.risk_level)}</td><td>${esc(x.review_status)}</td><td>${esc(x.dpa_status)}</td></tr>`).join("")||'<tr><td colspan="6" class="muted">No vendors in register.</td></tr>';
+  el("retentionRows").innerHTML=(retention.data||[]).map(x=>`<tr><td>${esc(x.data_category.replaceAll("_"," "))}</td><td>${esc(x.retention_rule)}</td><td>${esc(x.trigger_event)}</td><td>${esc(x.policy_status)}</td><td>${esc(x.owner_role||"—")}</td></tr>`).join("")||'<tr><td colspan="5" class="muted">No retention rules.</td></tr>';
+  el("incidentRows").innerHTML=(incidents.data||[]).map(x=>`<tr><td>${fmt(x.detected_at)}</td><td>${esc(x.severity.toUpperCase())}</td><td>${esc(x.status)}</td><td>${esc(x.title)}</td><td>${esc(x.owner_role||"—")}</td></tr>`).join("")||'<tr><td colspan="5" class="muted">No security incidents recorded.</td></tr>';
+  el("sharingConsentRows").innerHTML=(sharingConsents.data||[]).map(x=>`<tr><td>${esc(names.get(x.user_id)||x.user_id.slice(0,8))}</td><td>${esc(x.consent_type.replaceAll("_"," "))}</td><td>${esc(x.consent_version)}</td><td>${esc((x.scopes||[]).join(", ")||"—")}</td><td>${esc(x.status)}</td><td>${fmt(x.granted_at)}</td></tr>`).join("")||'<tr><td colspan="6" class="muted">No downstream sharing consents.</td></tr>';
 
   el("disputeRows").innerHTML=(disputes.data||[]).map(x=>`<tr><td>${esc(names.get(x.user_id)||x.user_id.slice(0,8))}</td><td>${fmt(x.received_at)}</td><td>${esc(x.consumer_statement||x.dispute_reason)}</td><td>${esc(x.status)}</td><td>${esc(x.resolution_summary||"—")}</td></tr>`).join("")||'<tr><td colspan="5" class="muted">No disputes.</td></tr>';
   el("providerRows").innerHTML=(providers.data||[]).map(x=>`<tr><td>${esc(x.provider_name)}</td><td>${esc(x.provider_type)}</td><td>${esc(x.status)}</td><td>${fmt(x.agreement_effective_at)}</td></tr>`).join("")||'<tr><td colspan="4" class="muted">No data providers yet.</td></tr>';
