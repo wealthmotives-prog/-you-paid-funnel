@@ -129,6 +129,8 @@ let pendingTier=new URLSearchParams(location.search).get("tier");
 let foundingProgramOpen=true;
 let foundingTermsVersion=null;
 let hasAcceptedTerms=false;
+let authRefreshTimer=null;
+let lastAuthUserId=null;
 if(!["founder","builder","cornerstone"].includes(pendingTier)) pendingTier=null;
 
 function sessionId(){let id=sessionStorage.getItem("youpaid_session_id");if(!id){id=crypto.randomUUID?crypto.randomUUID():"sess_"+Date.now()+"_"+Math.random().toString(36).slice(2);sessionStorage.setItem("youpaid_session_id",id)}return id}
@@ -152,6 +154,7 @@ function tierRank(code){return ({founder:1,builder:2,cornerstone:3})[code]||0}
 
 async function refreshFounder(){
   const {data:{session}}=await sb.auth.getSession();
+  lastAuthUserId=session?.user?.id||null;
   el("signedOut").classList.toggle("hidden",!!session);
   el("signedIn").classList.toggle("hidden",!session);
   if(!session)return;
@@ -300,7 +303,13 @@ el("paymentPending").onclick=async()=>{
   }
 };
 
-sb.auth.onAuthStateChange(()=>refreshFounder());
+sb.auth.onAuthStateChange((event,session)=>{
+  const nextUserId=session?.user?.id||null;
+  if(event==="INITIAL_SESSION"||event==="SIGNED_IN"||event==="SIGNED_OUT"||nextUserId!==lastAuthUserId){
+    clearTimeout(authRefreshTimer);
+    authRefreshTimer=setTimeout(()=>refreshFounder(),75);
+  }
+});
 loadProgramState().then(refreshFounder);
 </script>
 </body>
