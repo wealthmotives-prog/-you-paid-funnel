@@ -10,7 +10,7 @@
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 a{color:inherit;text-decoration:none}.wrap{max-width:1180px;margin:auto;padding:22px}.top{display:flex;justify-content:space-between;align-items:center;gap:12px}.brand{font-size:22px;font-weight:900}.brand span{color:var(--lime)}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.metric strong{display:block;font-size:30px;margin-top:6px}.muted{color:var(--muted)}button{border:0;border-radius:11px;padding:11px 14px;font-weight:800;cursor:pointer;background:var(--lime);color:#071008}button.secondary{background:var(--panel2);color:var(--text);border:1px solid var(--line)}
-input,select,textarea{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:#0d1116;color:var(--text);margin-top:6px;font:inherit}textarea{min-height:88px;resize:vertical}.hidden{display:none!important}.auth{max-width:470px;margin:70px auto}.stack{display:grid;gap:12px}.section{margin-top:26px}.row{display:flex;justify-content:space-between;gap:12px;align-items:center}.badge{display:inline-flex;padding:5px 8px;border-radius:999px;background:#132015;color:var(--lime);font-size:11px;font-weight:800}.warn{color:var(--amber)}.bad{color:#ff8a8a}.ok{color:var(--lime)}.statusselect{min-width:150px;margin:0}.controltitle{font-weight:800}.gate{font-size:11px;color:var(--muted)}
+input,select,textarea{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:#0d1116;color:var(--text);margin-top:6px;font:inherit}textarea{min-height:88px;resize:vertical}.hidden{display:none!important}.auth{max-width:470px;margin:70px auto}.stack{display:grid;gap:12px}.section{margin-top:26px;scroll-margin-top:78px}.workspace-hidden{display:none!important}.commandnav a.active{background:var(--lime);color:#071008;border-color:var(--lime)}.row{display:flex;justify-content:space-between;gap:12px;align-items:center}.badge{display:inline-flex;padding:5px 8px;border-radius:999px;background:#132015;color:var(--lime);font-size:11px;font-weight:800}.warn{color:var(--amber)}.bad{color:#ff8a8a}.ok{color:var(--lime)}.statusselect{min-width:150px;margin:0}.controltitle{font-weight:800}.gate{font-size:11px;color:var(--muted)}
 table{width:100%;border-collapse:collapse}th,td{padding:11px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}th{color:var(--muted);font-weight:600}.scroll{overflow:auto}
 @media(max-width:840px){.grid{grid-template-columns:1fr 1fr}.top{align-items:flex-start}}@media(max-width:520px){.grid{grid-template-columns:1fr}.wrap{padding:15px}}
 .commandnav{position:sticky;top:0;z-index:20;display:flex;gap:8px;overflow-x:auto;padding:10px 0;background:rgba(8,10,13,.94);backdrop-filter:blur(12px);scrollbar-width:none}.commandnav::-webkit-scrollbar{display:none}.commandnav a{flex:0 0 auto;white-space:nowrap;padding:9px 12px;border:1px solid var(--line);border-radius:999px;background:var(--panel);font-size:12px;font-weight:800}@media(max-width:520px){h2{font-size:28px;line-height:1.05}.metric{padding:14px}.section{margin-top:34px}}</style>
@@ -40,7 +40,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:11px;border-bottom:1px s
       <p class="muted">Member growth, historical verification, disputes, data providers, reporting readiness, founding access, funnel activity, and administrative audit history in one place.</p><p class="muted" id="adminIdentity" style="font-size:13px"></p>
     </section>
 
-    <nav class="commandnav"><a href="#overview">Overview</a><a href="#founders">Money</a><a href="#verification">Verification</a><a href="#members">Members</a><a href="#risk">Risk</a><a href="#network">Network</a></nav>
+    <nav class="commandnav"><a href="#overview" data-workspace="overview" class="active">Overview</a><a href="#founders" data-workspace="money">Money</a><a href="#verification" data-workspace="verification">Verification</a><a href="#members" data-workspace="members">Members</a><a href="#risk" data-workspace="risk">Risk</a><a href="#network" data-workspace="network">Network</a></nav>
     <div class="grid" id="overview">
       <div class="card metric"><span class="muted">Waitlist</span><strong id="leadCount">—</strong></div>
       <div class="card metric"><span class="muted">Members</span><strong id="memberCount">—</strong></div>
@@ -200,7 +200,7 @@ async function loadDashboard(){
   const {data:snapshot}=await sb.rpc("admin_command_center_snapshot");
   const [leads,members,pending,cycles,founderIntents,founderMemberships,founderContributions,founderProgram,checkoutSessions,termAcceptances,disputes,providers,destinations,transmissions,compliance,privacyRequests,vendorRisk,retention,incidents,sharingConsents] = await Promise.all([
     sb.from("waitlist_leads").select("first_name,email,work_type,referral_intent,created_at").order("created_at",{ascending:false}).limit(25),
-    sb.from("member_profiles").select("user_id,display_name,member_status,joined_at").order("joined_at",{ascending:false}).limit(25),
+    sb.rpc("admin_member_directory"),
     sb.from("employment_records").select("id,user_id,employer_name,employment_start,employment_status,verification_status").eq("verification_status","pending").order("created_at",{ascending:true}).limit(50),
     sb.from("monthly_work_cycles").select("id",{count:"exact",head:true}).eq("cycle_status","verified"),
     sb.from("founder_intents").select("user_id,tier_code,amount_cents,status,selected_at").order("selected_at",{ascending:false}).limit(50),
@@ -250,11 +250,11 @@ async function loadDashboard(){
   }
 
   el("leadRows").innerHTML=(leads.data||[]).map(x=>`<tr><td>${esc(x.first_name)}</td><td>${esc(x.email)}</td><td>${esc(x.work_type)}</td><td>${esc(x.referral_intent)}</td><td>${fmt(x.created_at)}</td></tr>`).join("")||'<tr><td colspan="5" class="muted">No leads.</td></tr>';
-  el("memberRows").innerHTML=(members.data||[]).map(x=>`<tr><td>${esc(x.display_name||"Member")}</td><td>${esc(x.member_status)}</td><td>${fmt(x.joined_at)}</td></tr>`).join("")||'<tr><td colspan="3" class="muted">No members.</td></tr>';
+  const memberDirectory=Array.isArray(members.data)?members.data:[];\n  el("memberRows").innerHTML=memberDirectory.map(x=>`<tr><td>${esc(x.display_name||"Member")}</td><td>${esc(x.member_status)}</td><td>${fmt(x.joined_at)}</td></tr>`).join("")||'<tr><td colspan="3" class="muted">No members.</td></tr>';
 
 
   const founderNames={founder:"Founding Member",builder:"Founding Builder",cornerstone:"Founding Cornerstone"};
-  const names = new Map((members.data||[]).map(m=>[m.user_id,m.display_name||m.user_id.slice(0,8)]));
+  const names = new Map(memberDirectory.map(m=>[m.user_id,m.display_name||m.user_id.slice(0,8)]));
 
 
   el("privacyRows").innerHTML=(privacyRequests.data||[]).map(x=>`<tr><td>${esc(names.get(x.user_id)||x.user_id?.slice(0,8)||"email intake")}</td><td>${esc(x.request_type.replaceAll("_"," "))}</td><td>${esc(x.identity_status)}</td><td>${esc(x.status)}</td><td>${fmt(x.received_at)}</td><td>${esc(x.decision_summary||"—")}</td></tr>`).join("")||'<tr><td colspan="6" class="muted">No privacy requests.</td></tr>';
@@ -378,7 +378,7 @@ el("toggleFounderProgram").onclick=async()=>{
   if(error){alert(error.message);return}
   await loadDashboard();
 };
-sb.auth.onAuthStateChange(()=>gate());gate();
+function setWorkspace(name){const groups={money:["founders","founderPipeline"],verification:["verification","disputes"],members:["members","waitlist"],risk:["risk","privacy","vendorRisk","retention","incidents","sharing"],network:["network","destinations","transmissions"]};const ids=Object.values(groups).flat();document.querySelectorAll(".commandnav a").forEach(a=>a.classList.toggle("active",a.dataset.workspace===name));ids.forEach(id=>{const node=el(id);if(node)node.classList.toggle("workspace-hidden",name!=="overview"&&!(groups[name]||[]).includes(id))});}document.querySelectorAll(".commandnav a").forEach(a=>a.addEventListener("click",e=>{e.preventDefault();setWorkspace(a.dataset.workspace);window.scrollTo({top:document.querySelector(".commandnav").offsetTop,behavior:"smooth"});}));\nsb.auth.onAuthStateChange(()=>gate());gate();
 </script>
 </body>
 </html>
