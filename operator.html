@@ -250,7 +250,8 @@ async function loadDashboard(){
   }
 
   el("leadRows").innerHTML=(leads.data||[]).map(x=>`<tr><td>${esc(x.first_name)}</td><td>${esc(x.email)}</td><td>${esc(x.work_type)}</td><td>${esc(x.referral_intent)}</td><td>${fmt(x.created_at)}</td></tr>`).join("")||'<tr><td colspan="5" class="muted">No leads.</td></tr>';
-  const memberDirectory=Array.isArray(members.data)?members.data:[];\n  el("memberRows").innerHTML=memberDirectory.map(x=>`<tr><td>${esc(x.display_name||"Member")}</td><td>${esc(x.member_status)}</td><td>${fmt(x.joined_at)}</td></tr>`).join("")||'<tr><td colspan="3" class="muted">No members.</td></tr>';
+  const memberDirectory=Array.isArray(members.data)?members.data:[];
+  el("memberRows").innerHTML=memberDirectory.map(x=>`<tr><td>${esc(x.display_name||"Member")}</td><td>${esc(x.member_status)}</td><td>${fmt(x.joined_at)}</td></tr>`).join("")||'<tr><td colspan="3" class="muted">No members.</td></tr>';
 
 
   const founderNames={founder:"Founding Member",builder:"Founding Builder",cornerstone:"Founding Cornerstone"};
@@ -378,7 +379,8 @@ el("toggleFounderProgram").onclick=async()=>{
   if(error){alert(error.message);return}
   await loadDashboard();
 };
-function setWorkspace(name){const groups={money:["founders","founderPipeline"],verification:["verification","disputes"],members:["members","waitlist"],risk:["risk","privacy","vendorRisk","retention","incidents","sharing"],network:["network","destinations","transmissions"]};const ids=Object.values(groups).flat();document.querySelectorAll(".commandnav a").forEach(a=>a.classList.toggle("active",a.dataset.workspace===name));ids.forEach(id=>{const node=el(id);if(node)node.classList.toggle("workspace-hidden",name!=="overview"&&!(groups[name]||[]).includes(id))});}document.querySelectorAll(".commandnav a").forEach(a=>a.addEventListener("click",e=>{e.preventDefault();setWorkspace(a.dataset.workspace);window.scrollTo({top:document.querySelector(".commandnav").offsetTop,behavior:"smooth"});}));\nsb.auth.onAuthStateChange(()=>gate());gate();
+function setWorkspace(name){const groups={money:["founders","founderPipeline"],verification:["verification","disputes"],members:["members","waitlist"],risk:["risk","privacy","vendorRisk","retention","incidents","sharing"],network:["network","destinations","transmissions"]};const ids=Object.values(groups).flat();document.querySelectorAll(".commandnav a").forEach(a=>a.classList.toggle("active",a.dataset.workspace===name));ids.forEach(id=>{const node=el(id);if(node)node.classList.toggle("workspace-hidden",name!=="overview"&&!(groups[name]||[]).includes(id))});}document.querySelectorAll(".commandnav a").forEach(a=>a.addEventListener("click",e=>{e.preventDefault();setWorkspace(a.dataset.workspace);window.scrollTo({top:document.querySelector(".commandnav").offsetTop,behavior:"smooth"});}));
+sb.auth.onAuthStateChange(()=>gate());gate();
 </script>
 </body>
 </html>
