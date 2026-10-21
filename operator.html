@@ -28,8 +28,9 @@ table{width:100%;border-collapse:collapse}th,td{padding:11px;border-bottom:1px s
     <p class="muted">Authorized You Paid operators only.</p>
     <label>Email<input id="email" type="email" autocomplete="email" placeholder="hello@joinyoupaid.com"></label>
     <label>Password<input id="password" type="password" autocomplete="current-password"></label>
-    <button id="signIn">Sign in</button>
+    <div class="row" style="justify-content:flex-start;margin-top:12px;flex-wrap:wrap"><button id="signIn">Sign in</button><button id="activateAdmin" class="secondary">Activate first-time admin</button></div>
     <p id="authMsg" class="muted"></p>
+    <p class="muted" style="font-size:12px">First time only: enter <strong>hello@joinyoupaid.com</strong> and the password you want to use, then tap Activate. Confirm the email before signing in.</p>
   </section>
 
   <main id="adminView" class="hidden">
