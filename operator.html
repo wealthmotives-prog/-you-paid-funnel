@@ -121,6 +121,17 @@ table{width:100%;border-collapse:collapse}th,td{padding:11px;border-bottom:1px s
       </div>
     </div>
 
+    <div class="section" id="paymentIntegrity">
+      <h2>Payment integrity</h2>
+      <p class="muted">Zero is the target for every exception metric.</p>
+      <div class="metrics">
+        <div class="metric"><span>Active checkouts</span><strong id="activeCheckoutCount">0</strong></div>
+        <div class="metric"><span>Failed webhook events</span><strong id="failedPaymentEventCount">0</strong></div>
+        <div class="metric"><span>Unreconciled paid</span><strong id="unreconciledPaidCount">0</strong></div>
+        <div class="metric"><span>Membership drift</span><strong id="membershipDriftCount">0</strong></div>
+      </div>
+    </div>
+
     <div class="section" id="founderPipeline">
       <h2>Founding access pipeline</h2>
       <div class="card scroll">
@@ -239,6 +250,10 @@ async function loadDashboard(){
   renderCompliance(compliance.data||[]);
   const paidRevenue=snapshot?.founder_revenue_cents??(founderContributions.data||[]).filter(x=>x.status==="paid").reduce((sum,x)=>sum+Number(x.amount_cents||0),0);
   el("founderRevenue").textContent="$"+(paidRevenue/100).toFixed(2);
+  el("activeCheckoutCount").textContent=snapshot?.active_checkout_sessions??0;
+  el("failedPaymentEventCount").textContent=snapshot?.failed_payment_events??0;
+  el("unreconciledPaidCount").textContent=snapshot?.unreconciled_paid_transactions??0;
+  el("membershipDriftCount").textContent=snapshot?.membership_drift??0;
   const program=founderProgram.data;
   if(program){
     const open=program.status==="open";
@@ -379,7 +394,7 @@ el("toggleFounderProgram").onclick=async()=>{
   if(error){alert(error.message);return}
   await loadDashboard();
 };
-function setWorkspace(name){const groups={money:["founders","founderPipeline"],verification:["verification","disputes"],members:["members","waitlist"],risk:["risk","privacy","vendorRisk","retention","incidents","sharing"],network:["network","destinations","transmissions"]};const ids=Object.values(groups).flat();document.querySelectorAll(".commandnav a").forEach(a=>a.classList.toggle("active",a.dataset.workspace===name));ids.forEach(id=>{const node=el(id);if(node)node.classList.toggle("workspace-hidden",name!=="overview"&&!(groups[name]||[]).includes(id))});}document.querySelectorAll(".commandnav a").forEach(a=>a.addEventListener("click",e=>{e.preventDefault();setWorkspace(a.dataset.workspace);window.scrollTo({top:document.querySelector(".commandnav").offsetTop,behavior:"smooth"});}));
+function setWorkspace(name){const groups={money:["founders","paymentIntegrity","founderPipeline"],verification:["verification","disputes"],members:["members","waitlist"],risk:["risk","privacy","vendorRisk","retention","incidents","sharing"],network:["network","destinations","transmissions"]};const ids=Object.values(groups).flat();document.querySelectorAll(".commandnav a").forEach(a=>a.classList.toggle("active",a.dataset.workspace===name));ids.forEach(id=>{const node=el(id);if(node)node.classList.toggle("workspace-hidden",name!=="overview"&&!(groups[name]||[]).includes(id))});}document.querySelectorAll(".commandnav a").forEach(a=>a.addEventListener("click",e=>{e.preventDefault();setWorkspace(a.dataset.workspace);window.scrollTo({top:document.querySelector(".commandnav").offsetTop,behavior:"smooth"});}));
 sb.auth.onAuthStateChange(()=>gate());gate();
 </script>
 </body>
