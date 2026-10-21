@@ -3,126 +3,55 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>You Paid — Your Work Already Happened. Make It Count.</title>
-<meta name="description" content="You Paid is building infrastructure to verify historical and ongoing work activity, preserve its evidence, and make the record portable.">
+<title>You Paid — Make Your Work History Count</title>
+<meta name="description" content="You Paid is building a new way to verify work history and help make years of consistency more useful in your financial life.">
 <link rel="canonical" href="https://www.joinyoupaid.com/">
 <meta property="og:type" content="website">
-<meta property="og:title" content="You Paid — Your Work Already Happened. Make It Count.">
-<meta property="og:description" content="Historical + ongoing work data, verified and organized into one portable record.">
+<meta property="og:title" content="You Paid — Make Your Work History Count">
+<meta property="og:description" content="You worked for it. Now let's make that history count.">
 <meta property="og:url" content="https://www.joinyoupaid.com/">
 <meta property="og:site_name" content="You Paid">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="You Paid — Your Work Already Happened. Make It Count.">
-<meta name="twitter:description" content="Historical + ongoing work data, verified and organized into one portable record.">
 <meta name="theme-color" content="#07090c">
 <style>
-:root{
-  --bg:#07090c;--bg2:#0c1117;--panel:#11171e;--panel2:#171f28;--line:#28333f;
-  --text:#f8fafc;--muted:#97a5b4;--accent:#8cff66;--accent2:#d9ffcc;--gold:#ffd477;
-  --vh:100vh
-}
+:root{--bg:#07090c;--panel:#10161d;--panel2:#151d26;--line:#27323d;--text:#f8fafc;--muted:#9eabb8;--accent:#8cff66;--accent2:#d9ffcc;--gold:#ffd477}
 *{box-sizing:border-box}
 html{scroll-behavior:smooth;background:var(--bg)}
-body{margin:0;background:
-radial-gradient(circle at 70% -10%,rgba(140,255,102,.08),transparent 35%),
-linear-gradient(180deg,var(--bg),var(--bg2) 45%,var(--bg));
-color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overflow-x:hidden}
-a{color:inherit;text-decoration:none}
-button,input,select{font:inherit}
-.wrap{width:min(100% - 36px,1180px);margin:auto}
-.nav{position:fixed;top:0;left:0;right:0;z-index:80;background:rgba(7,9,12,.9);backdrop-filter:blur(18px);border-bottom:1px solid rgba(255,255,255,.06)}
-.navin{height:70px;display:flex;align-items:center;justify-content:space-between;gap:16px}
-.brand{display:flex;align-items:center;gap:10px;font-size:25px;font-weight:950;letter-spacing:-1px}
-.brandmark{width:39px;height:39px;border-radius:12px;background:#101710;border:1px solid rgba(140,255,102,.4);display:grid;place-items:center;color:var(--accent);font-weight:950;font-size:14px}
-.brand .paid{color:var(--accent)}
-.navlinks{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
-.pill{font-size:11px;color:#afbac5;border:1px solid var(--line);padding:7px 10px;border-radius:999px;background:rgba(255,255,255,.015)}
-.pill:hover{border-color:rgba(140,255,102,.45);color:var(--text)}
-.btn{display:inline-flex;align-items:center;justify-content:center;padding:14px 18px;border-radius:15px;border:1px solid transparent;font-weight:900;cursor:pointer;transition:.18s transform,.18s border-color,.18s opacity}
-.btn:hover{transform:translateY(-1px)}
-.primary{background:var(--accent);color:#071007}
-.secondary{background:#171f28;color:var(--text);border-color:var(--line)}
-.ghost{background:transparent;color:var(--text);border-color:var(--line)}
-.eyebrow{font-size:11px;font-weight:900;letter-spacing:1.6px;text-transform:uppercase;color:var(--accent)}
-.display{font-size:clamp(58px,9.3vw,138px);line-height:.86;letter-spacing:-6px;margin:18px 0 26px;font-weight:950;max-width:1100px}
-.display .dim{color:#6f7984}
-h2{font-size:clamp(38px,6vw,76px);line-height:.94;letter-spacing:-3px;margin:12px 0 18px}
-h3{font-size:22px;margin:0 0 10px;letter-spacing:-.4px}
-p{color:var(--muted);line-height:1.7}
-.lede{font-size:clamp(18px,2.1vw,24px);max-width:780px}
-.note{font-size:12px;color:#7f8c9a;line-height:1.55}
-.ctas{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}
-.fullscreen{min-height:100vh;padding:120px 0 72px;display:flex;align-items:center}
-.hero{padding-top:130px}
-.hero-grid{display:grid;grid-template-columns:1.18fr .82fr;gap:34px;align-items:end}
-.hero-proof{display:flex;gap:18px;flex-wrap:wrap;margin-top:34px}
-.proof{padding-left:14px;border-left:1px solid var(--line);min-width:150px}
-.proof strong{font-size:18px;display:block;color:var(--text)}
-.proof span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.9px}
-.orbit{position:relative;min-height:520px;border:1px solid rgba(255,255,255,.06);border-radius:32px;background:
-linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,0)),
-radial-gradient(circle at center,rgba(140,255,102,.07),transparent 38%);overflow:hidden}
-.orbit-core{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:150px;height:150px;border-radius:38px;border:1px solid rgba(140,255,102,.42);display:grid;place-items:center;text-align:center;background:#0b110d;box-shadow:0 0 80px rgba(140,255,102,.08)}
-.orbit-core strong{font-size:24px}
-.node{position:absolute;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:#10161d;color:#ced7df;font-size:12px;box-shadow:0 12px 30px rgba(0,0,0,.25)}
-.n1{left:7%;top:16%}.n2{right:6%;top:14%}.n3{left:6%;bottom:18%}.n4{right:6%;bottom:17%}.n5{left:36%;top:6%}.n6{left:37%;bottom:6%}
-.ring{position:absolute;left:50%;top:50%;border:1px dashed rgba(140,255,102,.16);border-radius:50%;transform:translate(-50%,-50%)}.r1{width:310px;height:310px}.r2{width:470px;height:470px}
-.flowline{position:absolute;left:50%;top:50%;width:1px;height:180px;background:linear-gradient(transparent,rgba(140,255,102,.5),transparent);transform-origin:top center;opacity:.55}
-.f1{transform:rotate(30deg)}.f2{transform:rotate(92deg)}.f3{transform:rotate(152deg)}.f4{transform:rotate(215deg)}.f5{transform:rotate(275deg)}.f6{transform:rotate(332deg)}
-.section-kicker{max-width:900px}
-.problem{background:linear-gradient(180deg,#080b0f,#0b1016)}
-.problem .display{max-width:1000px}
-.data-strip{margin-top:60px;display:grid;grid-template-columns:repeat(6,1fr);gap:1px;border:1px solid var(--line);background:var(--line);border-radius:18px;overflow:hidden}
-.data-cell{background:#0c1218;padding:18px;min-height:110px}
-.data-cell span{font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase}.data-cell b{display:block;margin-top:11px;font-size:15px}
-.breakthrough{position:relative}
-.sticky-grid{display:grid;grid-template-columns:.88fr 1.12fr;gap:46px;align-items:start}
-.sticky-copy{position:sticky;top:110px}
-.timeline-stage{min-height:160vh;padding-top:5vh}
-.timeline-card{position:sticky;top:120px;border:1px solid var(--line);border-radius:30px;background:#0d1319;padding:28px;box-shadow:0 30px 80px rgba(0,0,0,.25)}
-.time-row{display:grid;grid-template-columns:110px 1fr;gap:18px;padding:20px 0;border-bottom:1px solid var(--line)}
-.time-row:last-child{border-bottom:0}.year{font-size:36px;font-weight:950;letter-spacing:-2px}.event{font-size:16px}.event b{display:block;color:var(--text);margin-bottom:6px}.event small{color:var(--muted)}
-.arrowline{height:2px;background:linear-gradient(90deg,var(--accent),rgba(140,255,102,.08));margin:20px 0}
-.record-section{background:radial-gradient(circle at 50% 30%,rgba(140,255,102,.06),transparent 38%)}
-.record-shell{border:1px solid var(--line);border-radius:30px;background:#0c1218;padding:24px;box-shadow:0 30px 90px rgba(0,0,0,.33)}
-.demo-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap}
-.demo-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:22px 0}
-.tab{padding:10px 12px;border-radius:999px;border:1px solid var(--line);background:#121922;color:#aab5bf;cursor:pointer;font-weight:800;font-size:12px}
-.tab.active{background:var(--accent);border-color:var(--accent);color:#071007}
-.ledger-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-.ledger-metric{background:#121a22;border:1px solid var(--line);border-radius:16px;padding:14px}
-.ledger-metric span{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.9px;color:var(--muted)}
-.ledger-metric strong{display:block;font-size:23px;margin-top:7px}
-.statusline{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
-.chip{padding:7px 9px;border-radius:999px;background:rgba(140,255,102,.07);border:1px solid rgba(140,255,102,.28);color:var(--accent2);font-size:11px;font-weight:800}
-.network{overflow:hidden}
-.network-stage{position:relative;min-height:580px;border:1px solid rgba(255,255,255,.06);border-radius:30px;background:radial-gradient(circle at center,rgba(140,255,102,.07),transparent 30%),#0a0f14;margin-top:34px}
-.hub{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:180px;height:180px;border-radius:44px;background:#0c130e;border:1px solid rgba(140,255,102,.45);display:grid;place-items:center;text-align:center;z-index:3}
-.hub strong{font-size:26px}.network-node{position:absolute;min-width:140px;padding:14px;border:1px solid var(--line);background:#111821;border-radius:16px;text-align:center;font-size:12px;color:#cbd5df}
-.p1{left:4%;top:14%}.p2{left:4%;bottom:14%}.p3{left:22%;top:5%}.p4{left:22%;bottom:5%}.d1{right:4%;top:12%}.d2{right:4%;bottom:12%}.d3{right:22%;top:5%}.d4{right:22%;bottom:5%}
-.netline{position:absolute;height:1px;background:linear-gradient(90deg,rgba(140,255,102,.06),rgba(140,255,102,.55),rgba(140,255,102,.06));transform-origin:left center;z-index:1}
-.scale{background:#07090c;text-align:center}
-.scale-lines{max-width:1000px;margin:auto}
-.scale-line{font-size:clamp(46px,8vw,118px);font-weight:950;letter-spacing:-5px;line-height:.88;margin:14px 0;color:#f5f7f9}
-.scale-line span{color:#5f6873}
-.roles{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:34px}
-.role{display:block;border:1px solid var(--line);background:#0e141b;border-radius:22px;padding:22px;min-height:220px;transition:.2s transform,.2s border-color}
-.role:hover{transform:translateY(-3px);border-color:rgba(140,255,102,.4)}
-.role span{font-size:11px;color:var(--accent);font-weight:900;letter-spacing:1px}.role p{font-size:14px}
-.founders{background:linear-gradient(180deg,#0c1117,#090d11)}
-.tiers{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:28px}
-.tier{border:1px solid var(--line);border-radius:22px;padding:22px;background:#0f151c}.tier strong{display:block;font-size:42px;letter-spacing:-2px}.tier.builder{border-color:rgba(140,255,102,.45)}.tier.corner{border-color:rgba(255,212,119,.4)}
-.join{background:#080b0f}
-.join-grid{display:grid;grid-template-columns:.9fr 1.1fr;gap:28px;align-items:start}
-.formcard{border:1px solid var(--line);border-radius:24px;background:#10161d;padding:22px}
-.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.input,select{width:100%;padding:14px;border-radius:13px;border:1px solid var(--line);background:#0b1016;color:var(--text)}.label{display:block;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:6px}
-.success{display:none;margin-top:12px;padding:12px;border-radius:13px;background:rgba(140,255,102,.07);border:1px solid rgba(140,255,102,.3);color:var(--accent2)}
-footer{border-top:1px solid var(--line);padding:42px 0 60px;color:#7f8c98;font-size:12px}
-.footerlinks{display:flex;gap:13px;flex-wrap:wrap;margin-bottom:16px}
-.reveal{opacity:0;transform:translateY(28px);transition:opacity .7s ease,transform .7s ease}.reveal.visible{opacity:1;transform:none}
-@media(max-width:980px){.hero-grid,.sticky-grid,.join-grid{grid-template-columns:1fr}.orbit{min-height:430px}.sticky-copy{position:relative;top:auto}.timeline-stage{min-height:auto;padding-top:0}.timeline-card{position:relative;top:auto}.roles,.ledger-grid{grid-template-columns:1fr 1fr}.data-strip{grid-template-columns:repeat(3,1fr)}.network-stage{min-height:760px}.p1{left:5%;top:7%}.p3{left:5%;top:25%}.p2{left:5%;bottom:25%}.p4{left:5%;bottom:7%}.d1{right:5%;top:7%}.d3{right:5%;top:25%}.d2{right:5%;bottom:25%}.d4{right:5%;bottom:7%}}
-@media(max-width:720px){.navin{height:auto;min-height:66px;align-items:flex-start;padding:13px 0}.navlinks{max-width:68%;overflow:auto;flex-wrap:nowrap}.display{font-size:clamp(52px,16vw,82px);letter-spacing:-4px}.fullscreen{min-height:auto;padding:110px 0 68px}.hero{padding-top:110px}.orbit{min-height:390px}.r2{width:360px;height:360px}.r1{width:245px;height:245px}.node{font-size:10px}.ledger-grid,.roles,.tiers,.formgrid{grid-template-columns:1fr}.data-strip{grid-template-columns:1fr 1fr}.network-stage{min-height:900px}.hub{width:145px;height:145px}.network-node{min-width:120px;font-size:11px}.p1,.p3,.p2,.p4{left:3%}.d1,.d3,.d2,.d4{right:3%}}
-@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.reveal{opacity:1;transform:none;transition:none}.btn,.role{transition:none}}
+body{margin:0;color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:
+radial-gradient(circle at 72% 4%,rgba(140,255,102,.10),transparent 28%),
+radial-gradient(circle at 10% 34%,rgba(140,255,102,.04),transparent 22%),
+linear-gradient(180deg,#07090c,#0b1016 48%,#07090c);overflow-x:hidden}
+a{color:inherit;text-decoration:none}button,input,select{font:inherit}
+.wrap{width:min(100% - 34px,1080px);margin:auto}
+.nav{position:sticky;top:0;z-index:80;background:rgba(7,9,12,.94);backdrop-filter:blur(18px);border-bottom:1px solid rgba(255,255,255,.06)}
+.navin{min-height:66px;display:flex;align-items:center;justify-content:space-between;gap:14px}
+.brand{display:flex;align-items:center;gap:10px;font-size:24px;font-weight:950;letter-spacing:-1px}.brandmark{width:38px;height:38px;border-radius:12px;background:#101710;border:1px solid rgba(140,255,102,.42);display:grid;place-items:center;color:var(--accent);font-weight:950;font-size:14px}.brand .paid{color:var(--accent)}
+.navlinks{display:flex;gap:8px;align-items:center}.pill{font-size:11px;color:#b7c1cb;border:1px solid var(--line);padding:7px 10px;border-radius:999px;background:rgba(255,255,255,.015)}
+.founderbar{position:sticky;top:66px;z-index:70;background:linear-gradient(90deg,rgba(140,255,102,.10),rgba(140,255,102,.035));border-bottom:1px solid rgba(140,255,102,.18)}
+.founderbarin{min-height:48px;display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap}.founderbar b{font-size:13px}.micro{font-size:11px;color:var(--muted)}
+.btn{display:inline-flex;align-items:center;justify-content:center;padding:14px 18px;border-radius:15px;border:1px solid transparent;font-weight:900;cursor:pointer;transition:.18s transform,.18s border-color}.btn:hover{transform:translateY(-1px)}.primary{background:var(--accent);color:#071007}.secondary{background:#171f28;color:var(--text);border-color:var(--line)}.tierbtn{padding:8px 11px;border-radius:999px;border:1px solid rgba(140,255,102,.3);background:#10161d;color:var(--accent2);font-size:12px;font-weight:900}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.eyebrow{font-size:11px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent)}
+.hero{min-height:78vh;padding:92px 0 48px;display:flex;align-items:center}.hero-grid{display:grid;grid-template-columns:1.08fr .92fr;gap:28px;align-items:center}
+h1{font-size:clamp(56px,8.6vw,110px);line-height:.88;letter-spacing:-5px;margin:16px 0 22px;font-weight:950}.dim{color:#6c7680}
+h2{font-size:clamp(34px,5vw,58px);line-height:.96;letter-spacing:-2.3px;margin:8px 0 14px}h3{font-size:21px;margin:0 0 8px}
+p{color:var(--muted);line-height:1.62}.lede{font-size:clamp(18px,2vw,22px);max-width:720px}.note{font-size:12px;color:#84919d;line-height:1.5}.ctas{display:flex;gap:11px;flex-wrap:wrap;margin-top:24px}
+.hero-card{position:relative;border:1px solid rgba(140,255,102,.22);border-radius:28px;background:linear-gradient(180deg,rgba(140,255,102,.035),#0e141a);padding:22px;box-shadow:0 32px 100px rgba(0,0,0,.30);overflow:hidden}.hero-card:before{content:"";position:absolute;inset:auto -20% -45% auto;width:280px;height:280px;border-radius:50%;background:rgba(140,255,102,.07);filter:blur(4px)}
+.recordtop{display:flex;justify-content:space-between;gap:10px;align-items:center}.verified{font-size:11px;font-weight:900;color:var(--accent);border:1px solid rgba(140,255,102,.32);padding:6px 9px;border-radius:999px}.bigmetric{font-size:52px;font-weight:950;letter-spacing:-2px;margin-top:14px}.metricgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px}.metric{background:#141b23;border:1px solid var(--line);border-radius:15px;padding:13px}.metric span{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted)}.metric strong{display:block;font-size:21px;margin-top:5px}.pulse{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 0 rgba(140,255,102,.5);animation:pulse 2s infinite}@keyframes pulse{70%{box-shadow:0 0 0 10px rgba(140,255,102,0)}100%{box-shadow:0 0 0 0 rgba(140,255,102,0)}}
+.section{padding:72px 0}.center{text-align:center}.center .lede{margin-inline:auto}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:13px;margin-top:26px}.step{background:var(--panel);border:1px solid var(--line);border-radius:21px;padding:21px}.num{width:36px;height:36px;border-radius:11px;background:rgba(140,255,102,.1);color:var(--accent);display:grid;place-items:center;font-weight:950;margin-bottom:11px}
+.pop{background:linear-gradient(90deg,rgba(140,255,102,.08),rgba(255,212,119,.04));border-top:1px solid rgba(140,255,102,.12);border-bottom:1px solid rgba(140,255,102,.12)}.popline{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}.popline h2{max-width:700px}
+.founderchoice{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:24px}.choice{display:block;border:1px solid var(--line);border-radius:20px;background:var(--panel);padding:19px;transition:.18s transform,.18s border-color}.choice:hover{transform:translateY(-2px);border-color:rgba(140,255,102,.42)}.choice strong{font-size:34px;display:block;letter-spacing:-1px}.choice span{color:var(--muted);font-size:13px}.choice.featured{border-color:rgba(140,255,102,.45);background:linear-gradient(180deg,rgba(140,255,102,.04),var(--panel))}
+.history-card{display:grid;grid-template-columns:.9fr 1.1fr;gap:18px;align-items:center;border:1px solid var(--line);border-radius:26px;background:#0e141a;padding:22px}.timeline{display:grid;gap:8px}.tl{display:grid;grid-template-columns:82px 1fr;gap:12px;padding:13px 0;border-bottom:1px solid var(--line)}.tl:last-child{border-bottom:0}.year{font-size:24px;font-weight:950}.tl small{color:var(--muted)}
+.trustrow{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-top:24px}.trustitem{border:1px solid var(--line);border-radius:17px;background:#0f151c;padding:16px}.trustitem b{display:block;margin-bottom:6px}
+.faq{max-width:820px;margin:24px auto 0}.qa{border-top:1px solid var(--line);padding:16px 0}.qa h3{font-size:18px}.qa p{margin:0}
+.join{padding:78px 0;background:#080b0f}.join-grid{display:grid;grid-template-columns:.92fr 1.08fr;gap:22px}.formcard{border:1px solid var(--line);border-radius:22px;background:#10161d;padding:21px}.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:11px}.input,select{width:100%;padding:13px;border-radius:12px;border:1px solid var(--line);background:#0b1016;color:var(--text)}.label{display:block;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:5px}.success{display:none;margin-top:11px;padding:11px;border-radius:12px;background:rgba(140,255,102,.07);border:1px solid rgba(140,255,102,.3);color:var(--accent2)}
+details{margin-top:14px;border:1px solid var(--line);border-radius:14px;padding:12px;background:#0d1319}summary{cursor:pointer;font-size:12px;color:#d4dce4;font-weight:800}details p{font-size:12px;margin-bottom:0}
+footer{border-top:1px solid var(--line);padding:34px 0 52px;color:#7f8c98;font-size:12px}.footerlinks{display:flex;gap:11px;flex-wrap:wrap;margin-bottom:13px}
+.reveal{opacity:0;transform:translateY(20px);transition:opacity .6s ease,transform .6s ease}.reveal.visible{opacity:1;transform:none}
+@media(max-width:880px){.hero-grid,.history-card,.join-grid{grid-template-columns:1fr}.steps,.founderchoice,.trustrow{grid-template-columns:1fr 1fr}.navlinks a:nth-child(1),.navlinks a:nth-child(2){display:none}.hero{min-height:auto}}
+@media(max-width:620px){.wrap{width:min(100% - 26px,1080px)}.navlinks{gap:5px}.pill{padding:7px 8px}.brand{font-size:20px}.brandmark{width:34px;height:34px}.founderbarin{padding:7px 0}.hero{padding-top:72px}.steps,.founderchoice,.trustrow,.formgrid,.metricgrid{grid-template-columns:1fr}h1{font-size:clamp(52px,15vw,72px);letter-spacing:-4px}.section{padding:58px 0}.founderbar .micro{display:none}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.reveal{opacity:1;transform:none;transition:none}.btn,.choice{transition:none}.pulse{animation:none}}
 </style>
 </head>
 <body>
@@ -130,187 +59,133 @@ footer{border-top:1px solid var(--line);padding:42px 0 60px;color:#7f8c98;font-s
   <div class="wrap navin">
     <a class="brand" href="/" aria-label="You Paid home"><span class="brandmark">YP</span><span>You <span class="paid">Paid</span></span></a>
     <div class="navlinks">
-      <a class="pill" href="/how-it-works.html">How It Works</a>
-      <a class="pill" href="/verification-standard.html">Verification</a>
-      <a class="pill" href="/status.html">Status</a>
+      <a class="pill" href="#how">How It Works</a>
+      <a class="pill" href="#faq">FAQ</a>
       <a class="pill" href="/founders.html" data-track="nav_founders">Founding Access</a>
-      <a class="pill" href="/app.html" data-track="nav_member">Member Login</a>
+      <a class="pill" href="/app.html" data-track="nav_member">Log In</a>
       <a class="pill" href="#join" data-track="nav_join">Join Early</a>
     </div>
   </div>
 </nav>
 
+<div class="founderbar">
+  <div class="wrap founderbarin">
+    <b>Founding Access starts at $1</b><span class="micro">Choose the level that matches your commitment.</span>
+    <a class="tierbtn" href="/founders.html?tier=founder" data-track="founder_home_1">$1</a>
+    <a class="tierbtn" href="/founders.html?tier=builder" data-track="founder_home_10">$10</a>
+    <a class="tierbtn" href="/founders.html?tier=cornerstone" data-track="founder_home_100">$100</a>
+  </div>
+</div>
+
 <main>
-<section class="fullscreen hero">
+<section class="hero">
   <div class="wrap hero-grid">
     <div class="reveal">
-      <div class="eyebrow">Verified work-data infrastructure</div>
-      <h1 class="display">Your work already happened.<br><span class="dim">Make it count.</span></h1>
-      <p class="lede">You Paid is building the infrastructure to verify historical and ongoing work activity, preserve the evidence behind it, and turn years of fragmented work history into one portable record.</p>
+      <div class="eyebrow">Your work should mean more</div>
+      <h1>You showed up.<br><span class="dim">Let's make it count.</span></h1>
+      <p class="lede">You Paid is building a way to verify the work history you've already earned and help make that consistency more useful in your financial life.</p>
       <div class="ctas">
-        <a class="btn primary" href="#breakthrough" data-track="hero_story">See the breakthrough</a>
-        <a class="btn secondary" href="/how-it-works.html">How it works</a>
+        <a class="btn primary" href="/founders.html?tier=builder" data-track="founder_home_10">Become a Founding Builder — $10</a>
+        <a class="btn secondary" href="#how">See how it works</a>
       </div>
-      <div class="hero-proof">
-        <div class="proof"><strong>Historical + current</strong><span>same ledger</span></div>
-        <div class="proof"><strong>Evidence-backed</strong><span>source aware</span></div>
-        <div class="proof"><strong>Reporting-ready</strong><span>not reporting-hyped</span></div>
-      </div>
-      <p class="note" style="margin-top:24px">Prelaunch. You Paid does not currently represent that a nationwide bureau-furnishing relationship is live and does not guarantee score, approval, or underwriting outcomes.</p>
+      <p class="note" style="margin-top:16px">No minimum income level is required for your work history to be considered for verification. Prelaunch; no bureau-reporting or credit-score outcome is guaranteed.</p>
     </div>
-    <div class="orbit reveal" aria-label="Illustrative data sources flowing into You Paid">
-      <div class="ring r1"></div><div class="ring r2"></div>
-      <div class="flowline f1"></div><div class="flowline f2"></div><div class="flowline f3"></div><div class="flowline f4"></div><div class="flowline f5"></div><div class="flowline f6"></div>
-      <div class="orbit-core"><div><strong>You Paid</strong><br><span class="note">Verified Work Ledger</span></div></div>
-      <div class="node n1">Employer</div><div class="node n2">Payroll</div><div class="node n3">Timekeeping</div><div class="node n4">Gig / Staffing</div><div class="node n5">Bank payroll</div><div class="node n6">Documents</div>
+    <div class="hero-card reveal">
+      <div class="recordtop"><span class="eyebrow">Illustrative record</span><span class="verified"><span class="pulse"></span> VERIFIED</span></div>
+      <div class="bigmetric">4 yrs 7 mos</div>
+      <div class="note">Verified work tenure</div>
+      <div class="metricgrid">
+        <div class="metric"><span>Past work</span><strong>Verified</strong></div>
+        <div class="metric"><span>Current status</span><strong>Active</strong></div>
+        <div class="metric"><span>Consistency</span><strong>8 mo</strong></div>
+        <div class="metric"><span>Income minimum</span><strong>None</strong></div>
+      </div>
+      <p class="note">Simulation only. Actual verification depends on available evidence.</p>
     </div>
   </div>
 </section>
 
-<section class="fullscreen problem">
-  <div class="wrap reveal">
-    <div class="eyebrow">The problem</div>
-    <h2 class="display">Years of work disappear into disconnected systems.</h2>
-    <p class="lede">The evidence exists. It is just scattered across employers, payroll processors, scheduling tools, time clocks, staffing platforms, gig apps, bank deposits, and documents.</p>
-    <div class="data-strip" aria-label="Examples of fragmented work data">
-      <div class="data-cell"><span>Employer</span><b>Hire dates</b></div>
-      <div class="data-cell"><span>Payroll</span><b>Pay cycles</b></div>
-      <div class="data-cell"><span>Timekeeping</span><b>Clock-ins</b></div>
-      <div class="data-cell"><span>Staffing</span><b>Assignments</b></div>
-      <div class="data-cell"><span>Gig work</span><b>Completed activity</b></div>
-      <div class="data-cell"><span>Bank</span><b>Payroll continuity</b></div>
-    </div>
-  </div>
-</section>
-
-<section class="fullscreen breakthrough" id="breakthrough">
-  <div class="wrap sticky-grid">
-    <div class="sticky-copy reveal">
-      <div class="eyebrow">The breakthrough</div>
-      <h2>The work date and the verification date do not have to be the same.</h2>
-      <p class="lede">A real work event can happen years before a member discovers You Paid. If reliable evidence supports that event later, we can preserve both truths: <strong style="color:var(--text)">when the work happened</strong> and <strong style="color:var(--text)">when You Paid verified it</strong>.</p>
-      <p>That is historical verification. It is not pretending the You Paid relationship existed earlier than it did.</p>
-      <a class="btn secondary" href="/verification-standard.html">Read Verification Standard v1.1</a>
-    </div>
-    <div class="timeline-stage">
-      <div class="timeline-card reveal">
-        <div class="time-row"><div class="year">2022</div><div class="event"><b>Employment relationship begins</b><small>Underlying fact created in the real world.</small></div></div>
-        <div class="time-row"><div class="year">2023</div><div class="event"><b>Recurring work activity</b><small>Payroll, shifts, assignments, or other supported evidence accumulates.</small></div></div>
-        <div class="time-row"><div class="year">2024</div><div class="event"><b>Historical work event</b><small>Event date remains 2024 even if nobody at You Paid saw it then.</small></div></div>
-        <div class="arrowline"></div>
-        <div class="time-row"><div class="year">2026</div><div class="event"><b>Member joins You Paid</b><small>Membership starts now. Historical evidence can be reviewed now.</small></div></div>
-        <div class="time-row"><div class="year">2026</div><div class="event"><b>Historical event verified</b><small>Record can show: event happened in 2024 · verified by You Paid in 2026.</small></div></div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="fullscreen record-section" id="record">
+<section class="section" id="how">
   <div class="wrap">
-    <div class="section-kicker reveal">
-      <div class="eyebrow">The record</div>
-      <h2>See the data object, not just the promise.</h2>
-      <p class="lede">Explore an illustrative You Paid record state. This demo shows how the same ledger can represent historical verification, current activity, a dispute, or a real reporting transmission once a destination actually exists.</p>
+    <div class="center reveal"><div class="eyebrow">Three steps</div><h2>Work. Verify. Count.</h2></div>
+    <div class="steps">
+      <div class="step reveal"><div class="num">1</div><h3>Add your history</h3><p>Past and current jobs can be part of the picture.</p></div>
+      <div class="step reveal"><div class="num">2</div><h3>Verify the evidence</h3><p>Employer, payroll, timekeeping, gig, bank-payroll, or qualifying records can support verification.</p></div>
+      <div class="step reveal"><div class="num">3</div><h3>Build your record</h3><p>Your verified history grows into one clearer record over time.</p></div>
     </div>
-    <div class="record-shell reveal">
-      <div class="demo-head">
-        <div><div class="eyebrow">Illustrative member record</div><h3 id="demoTitle" style="font-size:30px;margin-top:8px">Historical work verified</h3></div>
-        <div class="note">Simulation only · not a real consumer report</div>
-      </div>
-      <div class="demo-tabs">
-        <button class="tab active" data-state="historical">Historical</button>
-        <button class="tab" data-state="current">Current</button>
-        <button class="tab" data-state="disputed">Disputed</button>
-        <button class="tab" data-state="reported">Reported</button>
-      </div>
-      <div class="ledger-grid">
-        <div class="ledger-metric"><span>Underlying event</span><strong id="m1">Jul 2024</strong></div>
-        <div class="ledger-metric"><span>Verified by You Paid</span><strong id="m2">Oct 2026</strong></div>
-        <div class="ledger-metric"><span>Evidence level</span><strong id="m3">L3</strong></div>
-        <div class="ledger-metric"><span>Record status</span><strong id="m4">Verified</strong></div>
-      </div>
-      <div class="statusline" id="demoChips">
-        <span class="chip">Employer source</span><span class="chip">Historical event</span><span class="chip">Audit trail preserved</span>
-      </div>
-      <p id="demoCopy" style="margin-top:18px">A supported 2024 event was reviewed and verified in 2026. The member's You Paid history still begins in 2026.</p>
+    <div class="ctas" style="justify-content:center">
+      <a class="btn primary" href="/founders.html?tier=founder" data-track="founder_home_1">Start Founding Access — $1</a>
     </div>
   </div>
 </section>
 
-<section class="fullscreen network">
-  <div class="wrap">
-    <div class="section-kicker reveal">
-      <div class="eyebrow">The network</div>
-      <h2>From fragmented records to permissioned infrastructure.</h2>
-      <p class="lede">The consumer ledger is only one layer. The larger opportunity is a network that can receive authoritative data, verify it, resolve disputes, and transmit it to qualified destinations when a real relationship exists.</p>
-    </div>
-    <div class="network-stage reveal" id="networkStage">
-      <div class="hub"><div><strong>You Paid</strong><br><span class="note">verify · normalize · preserve</span></div></div>
-      <div class="network-node p1">Employer</div><div class="network-node p2">Payroll</div><div class="network-node p3">Timekeeping</div><div class="network-node p4">Gig / Staffing</div>
-      <div class="network-node d1">Consumer reporting</div><div class="network-node d2">Lender / Fintech</div><div class="network-node d3">Landlord</div><div class="network-node d4">Member-authorized use</div>
-    </div>
-    <div class="ctas reveal"><a class="btn primary" href="/data-network.html">Explore the data network</a><a class="btn secondary" href="/for-employers.html">For employers & providers</a></div>
-  </div>
-</section>
-
-<section class="fullscreen scale">
-  <div class="wrap scale-lines reveal">
-    <div class="eyebrow">The category</div>
-    <div class="scale-line">Millions <span>of workers.</span></div>
-    <div class="scale-line">Billions <span>of workdays.</span></div>
-    <div class="scale-line">Decades <span>of fragmented history.</span></div>
-    <div class="scale-line">One <span>portable record.</span></div>
-    <p class="note" style="max-width:700px;margin:26px auto 0">Category-scale statements describe the size of the problem and opportunity, not current You Paid member or verification counts.</p>
-  </div>
-</section>
-
-<section class="fullscreen">
-  <div class="wrap">
-    <div class="section-kicker reveal"><div class="eyebrow">Choose your door</div><h2>Different people enter the network for different reasons.</h2></div>
-    <div class="roles">
-      <a class="role reveal" href="/app.html"><span>I'M A WORKER</span><h3 style="margin-top:12px">Build my record</h3><p>Create an account, organize work relationships, and begin building historical and ongoing verification history.</p></a>
-      <a class="role reveal" href="/for-employers.html"><span>I'M AN EMPLOYER</span><h3 style="margin-top:12px">Contribute authoritative data</h3><p>Explore a structured path for validating the work history your people have already earned.</p></a>
-      <a class="role reveal" href="/data-network.html"><span>I'M A DATA PROVIDER</span><h3 style="margin-top:12px">Connect a source</h3><p>Payroll, timekeeping, staffing, gig, and workforce systems can become part of the verification layer.</p></a>
-      <a class="role reveal" href="/contact.html"><span>I'M A FINTECH / DATA USER</span><h3 style="margin-top:12px">Explore future access</h3><p>Talk with us about permissioned verified-work data and potential downstream use cases.</p></a>
-    </div>
-  </div>
-</section>
-
-<section class="fullscreen">
+<section class="section pop">
   <div class="wrap reveal">
-    <div class="eyebrow">Trust architecture</div>
-    <h2>Ambition without mystery.</h2>
-    <p class="lede">You should be able to inspect how You Paid thinks before trusting it with your data.</p>
-    <div class="roles">
-      <a class="role" href="/verification-standard.html"><span>STANDARD</span><h3 style="margin-top:12px">How verification works</h3><p>Evidence levels, historical events, neutral states, disputes, and transmission rules.</p></a>
-      <a class="role" href="/status.html"><span>STATUS</span><h3 style="margin-top:12px">Built. Building. Unresolved.</h3><p>See exactly which systems exist and which partner pathways do not yet exist.</p></a>
-      <a class="role" href="/security.html"><span>SECURITY</span><h3 style="margin-top:12px">How data is handled</h3><p>Authentication, access control, auditability, minimization, and sensitive-data principles.</p></a>
-      <a class="role" href="/changelog.html"><span>CHANGELOG</span><h3 style="margin-top:12px">Watch the system evolve</h3><p>Major product and infrastructure milestones, documented publicly.</p></a>
+    <div class="popline">
+      <div><div class="eyebrow">Choose your level</div><h2>Put something behind the movement.</h2><p class="lede">Founding Access is a one-time prelaunch program for people who want to help us build earlier.</p></div>
+    </div>
+    <div class="founderchoice">
+      <a class="choice" href="/founders.html?tier=founder" data-track="founder_home_1"><strong>$1</strong><h3>Founding Member</h3><span>Put your name on the early chapter.</span></a>
+      <a class="choice featured" href="/founders.html?tier=builder" data-track="founder_home_10"><strong>$10</strong><h3>Founding Builder</h3><span>Our recommended everyday commitment.</span></a>
+      <a class="choice" href="/founders.html?tier=cornerstone" data-track="founder_home_100"><strong>$100</strong><h3>Founding Cornerstone</h3><span>For those who want to go bigger from day one.</span></a>
+    </div>
+    <p class="note">Founding Access is not an investment, equity, a credit account, a tradeline, or a guarantee of reporting or score impact. Secure payment processing is not represented as live until activated.</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap history-card reveal">
+    <div>
+      <div class="eyebrow">Your past still matters</div>
+      <h2>Work from years ago can still be verified later.</h2>
+      <p>We keep the date you actually worked separate from the date You Paid later verifies it. Your work keeps its real history.</p>
+      <div class="ctas"><a class="btn primary" href="/founders.html?tier=builder" data-track="founder_home_10">Join as a Builder — $10</a><a class="btn secondary" href="/verification-standard.html">See verification rules</a></div>
+    </div>
+    <div class="timeline">
+      <div class="tl"><div class="year">2022</div><div><strong>You worked.</strong><br><small>The history began in the real world.</small></div></div>
+      <div class="tl"><div class="year">2024</div><div><strong>You kept showing up.</strong><br><small>More evidence accumulated.</small></div></div>
+      <div class="tl"><div class="year">2026</div><div><strong>You join You Paid.</strong><br><small>Past work can still be reviewed now.</small></div></div>
     </div>
   </div>
 </section>
 
-<section class="fullscreen founders" id="founding-access">
+<section class="section center">
   <div class="wrap reveal">
-    <div class="eyebrow">The founding era</div>
-    <h2>Be early on purpose.</h2>
-    <p class="lede">There is no founder cap. The scarcity is time: Founding Access remains open during prelaunch and is intended to close when You Paid enters public launch.</p>
-    <div class="tiers">
-      <div class="tier"><strong>$1</strong><h3>Founding Member</h3><p>Founding recognition, early updates, and eligibility for future founder-only benefits.</p><a class="btn secondary" href="/founders.html?tier=founder" data-track="founder_home_1">Explore $1</a></div>
-      <div class="tier builder"><strong>$10</strong><h3>Founding Builder</h3><p>Deeper early access, product testing, and founder feedback opportunities.</p><a class="btn primary" href="/founders.html?tier=builder" data-track="founder_home_10">Explore $10</a></div>
-      <div class="tier corner"><strong>$100</strong><h3>Founding Cornerstone</h3><p>Highest-priority beta access, premium founder recognition, and first-look product opportunities.</p><a class="btn secondary" href="/founders.html?tier=cornerstone" data-track="founder_home_100">Explore $100</a></div>
+    <div class="eyebrow">Built on trust</div>
+    <h2>Simple promise. Serious standards.</h2>
+    <div class="trustrow">
+      <div class="trustitem"><b>Evidence decides verification.</b><p>Paying more does not make a work fact more true.</p></div>
+      <div class="trustitem"><b>You can challenge mistakes.</b><p>Correction and dispute tools are part of the build.</p></div>
+      <div class="trustitem"><b>No fake reporting claims.</b><p>Nationwide bureau furnishing is not represented as live today.</p></div>
+      <div class="trustitem"><b>Your permissions matter.</b><p>Optional sharing is being designed around specific, trackable permissions.</p></div>
     </div>
-    <p class="note" style="margin-top:16px">Founding Access is separate from any future recurring verification subscription. It is not equity, an investment, a credit account, a tradeline, or a guarantee of reporting or score impact.</p>
+    <div class="ctas" style="justify-content:center"><a class="btn secondary" href="/transparency.html">Trust & Transparency</a><a class="btn primary" href="/founders.html?tier=cornerstone" data-track="founder_home_100">Go Cornerstone — $100</a></div>
   </div>
 </section>
 
-<section class="fullscreen join" id="join">
+<section class="section" id="faq">
+  <div class="wrap">
+    <div class="center reveal"><div class="eyebrow">Fast answers</div><h2>What most people want to know.</h2></div>
+    <div class="faq reveal">
+      <div class="qa"><h3>Do I need to make a certain amount?</h3><p>No minimum income level is required for your work history to be considered for verification.</p></div>
+      <div class="qa"><h3>Can old work history count?</h3><p>Yes, if reliable evidence supports it.</p></div>
+      <div class="qa"><h3>Does You Paid report to the three nationwide bureaus today?</h3><p>Not yet. We are building the verification and reporting-readiness infrastructure and pursuing appropriate external reporting pathways.</p></div>
+      <div class="qa"><h3>Will this raise my credit score?</h3><p>No specific score result can be promised. Future impact depends on where the data is accepted and how independent systems choose to use it.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="join" id="join">
   <div class="wrap join-grid">
     <div class="reveal">
-      <div class="eyebrow">Founding community</div>
-      <h2>The financial system measures what you borrowed. We're building infrastructure to preserve what you did.</h2>
-      <p class="lede">Join early, follow the build, and be one of the first people we reach as historical verification, data-provider integrations, and reporting pathways move forward.</p>
-      <div class="ctas"><a class="btn secondary" href="/about.html">Who We Are</a><a class="btn secondary" href="/transparency.html">Trust & Transparency</a></div>
+      <div class="eyebrow">Get in early</div>
+      <h2>Your work history deserves a seat at the table.</h2>
+      <p class="lede">Join the community, follow the build, and choose your Founding Access level when you're ready.</p>
+      <div class="founderchoice" style="grid-template-columns:1fr">
+        <a class="choice" href="/founders.html?tier=founder" data-track="founder_home_1"><strong>$1</strong><h3>Founding Member</h3></a>
+        <a class="choice featured" href="/founders.html?tier=builder" data-track="founder_home_10"><strong>$10</strong><h3>Founding Builder</h3></a>
+        <a class="choice" href="/founders.html?tier=cornerstone" data-track="founder_home_100"><strong>$100</strong><h3>Founding Cornerstone</h3></a>
+      </div>
     </div>
     <div class="formcard reveal">
       <form id="waitlistForm">
@@ -322,11 +197,11 @@ footer{border-top:1px solid var(--line);padding:42px 0 60px;color:#7f8c98;font-s
         </div>
         <label style="display:flex;gap:10px;align-items:flex-start;color:var(--muted);font-size:13px;line-height:1.45;margin:14px 0"><input type="checkbox" name="email_consent" required style="margin-top:3px"><span>I agree to receive product-development updates and early-access communications from You Paid. I can unsubscribe at any time.</span></label>
         <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;opacity:0" aria-hidden="true">
-        <button class="btn primary" type="submit">Get in early</button>
-        <div id="success" class="success">You’re in. Welcome to the founding community.</div>
+        <button class="btn primary" type="submit">Join the movement</button>
+        <div id="success" class="success">You're in. Welcome to the founding community.</div>
         <div id="formError" class="success" style="display:none;border-color:#ff7a7a;color:#ffd0d0;background:rgba(255,122,122,.08)"></div>
-        <p class="note">Joining the waitlist does not open a credit account, create a tradeline, or guarantee any credit-reporting or credit-score result. Prelaunch access is intended for U.S. adults age 18 and older.</p>
       </form>
+      <details><summary>Important prelaunch disclosure</summary><p>You Paid is a prelaunch verified work-data platform. Joining the waitlist or Founding Access does not create a credit account or tradeline and does not guarantee bureau reporting, credit-score improvement, approval, or a particular underwriting result.</p></details>
     </div>
   </div>
 </section>
@@ -334,10 +209,8 @@ footer{border-top:1px solid var(--line);padding:42px 0 60px;color:#7f8c98;font-s
 
 <footer>
   <div class="wrap">
-    <div class="footerlinks">
-      <a href="/how-it-works.html">How It Works</a><a href="/about.html">Who We Are</a><a href="/building.html">What We're Building</a><a href="/transparency.html">Trust</a><a href="/verification-standard.html">Verification Standard</a><a href="/status.html">Product Status</a><a href="/security.html">Security & Data</a><a href="/faq.html">FAQ</a><a href="/changelog.html">Changelog</a><a href="/for-employers.html">Employers</a><a href="/data-network.html">Data Network</a><a href="/quokka.html">Quokka Mission</a><a href="/founders.html">Founding Access</a><a href="/privacy.html" data-track="footer_privacy">Privacy</a><a href="/terms.html" data-track="footer_terms">Terms</a><a href="/product-disclosure.html" data-track="footer_disclosure">Disclosure</a><a href="/contact.html" data-track="footer_contact">Contact</a>
-    </div>
-    You Paid is operated by <span id="legalEntity" tabindex="0">850 Lifestyle LLC</span> and is intended to be offered under the You Paid trade name. Prelaunch only.
+    <div class="footerlinks"><a href="/how-it-works.html">How It Works</a><a href="/faq.html">Full FAQ</a><a href="/about.html">Who We Are</a><a href="/founders.html">Founding Access</a><a href="/transparency.html">Trust</a><a href="/privacy.html">Privacy</a><a href="/terms.html">Terms</a><a href="/product-disclosure.html">Disclosure</a><a href="/contact.html">Contact</a><a href="/data-network.html">Partners & Data</a></div>
+    You Paid is operated by <span id="legalEntity" tabindex="0">850 Lifestyle LLC</span>. Prelaunch only.
   </div>
 </footer>
 
@@ -351,46 +224,11 @@ let events=JSON.parse(localStorage.getItem("youpaid_events")||"[]");
 async function postToBackend(payload){if(!TRACKING_CONFIG.webhookUrl)return{ok:true};const response=await fetch(TRACKING_CONFIG.webhookUrl,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload),keepalive:true});let body={};try{body=await response.json()}catch{}if(!response.ok)throw new Error(body.error||"Unable to save right now.");return body}
 function track(event,data={}){events.push({event,time:new Date().toISOString(),...attribution,...data});localStorage.setItem("youpaid_events",JSON.stringify(events));postToBackend({type:"event",event_name:event,session_id:sessionId,hook:attribution.hook,utm_source:attribution.utm_source,utm_medium:attribution.utm_medium,utm_campaign:attribution.utm_campaign,utm_content:attribution.utm_content,page_url:location.href,referrer:document.referrer||"direct",metadata:data}).catch(()=>{})}
 track("page_view");\nlet adminTapCount=0,adminTapTimer=null;const legalEntity=document.getElementById("legalEntity");if(legalEntity){const adminGesture=()=>{adminTapCount++;clearTimeout(adminTapTimer);adminTapTimer=setTimeout(()=>adminTapCount=0,2200);if(adminTapCount>=5){adminTapCount=0;location.href="/operator.html"}};legalEntity.addEventListener("click",adminGesture);legalEntity.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();adminGesture()}});}
-
 const reduced=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-if(!reduced && "IntersectionObserver" in window){
-  const io=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add("visible")}),{threshold:.16});
-  document.querySelectorAll(".reveal").forEach(el=>io.observe(el));
-}else document.querySelectorAll(".reveal").forEach(el=>el.classList.add("visible"));
-
-const demoStates={
- historical:{title:"Historical work verified",m1:"Jul 2024",m2:"Oct 2026",m3:"L3",m4:"Verified",chips:["Employer source","Historical event","Audit trail preserved"],copy:"A supported 2024 event was reviewed and verified in 2026. The member's You Paid history still begins in 2026."},
- current:{title:"Current cycle in progress",m1:"Oct 2026",m2:"Live cycle",m3:"L4",m4:"Current",chips:["Source-linked","Ongoing activity","Monthly continuity"],copy:"Current work activity can accumulate from a continuously linked source while historical events remain separately preserved."},
- disputed:{title:"Accuracy review open",m1:"Sep 2026",m2:"Oct 2026",m3:"L3",m4:"Disputed",chips:["Consumer challenge","Evidence preserved","Source review pending"],copy:"A material accuracy question is visible as disputed while the source and supporting evidence are reviewed."},
- reported:{title:"Illustrative reporting transmission",m1:"Jan–Sep 2026",m2:"Oct 2026",m3:"Verified",m4:"Sent",chips:["Authorized destination","Historical transmission","Acknowledgement tracked"],copy:"This illustrates how a real transmission could appear after an authorized destination exists. You Paid does not currently represent nationwide bureau furnishing as live."}
-};
-document.querySelectorAll(".tab").forEach(btn=>btn.addEventListener("click",()=>{
-  document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));btn.classList.add("active");
-  const s=demoStates[btn.dataset.state];document.getElementById("demoTitle").textContent=s.title;
-  ["m1","m2","m3","m4"].forEach(k=>document.getElementById(k).textContent=s[k]);
-  document.getElementById("demoChips").innerHTML=s.chips.map(x=>'<span class="chip">'+x+'</span>').join("");
-  document.getElementById("demoCopy").textContent=s.copy;
-  track("demo_state",{state:btn.dataset.state});
-}));
-
-function connectNetwork(){
-  const stage=document.getElementById("networkStage"); if(!stage)return;
-  stage.querySelectorAll(".netline").forEach(x=>x.remove());
-  const hub=stage.querySelector(".hub"); const sr=stage.getBoundingClientRect(); const hr=hub.getBoundingClientRect();
-  const hx=hr.left-sr.left+hr.width/2, hy=hr.top-sr.top+hr.height/2;
-  stage.querySelectorAll(".network-node").forEach(node=>{
-    const nr=node.getBoundingClientRect(), nx=nr.left-sr.left+nr.width/2, ny=nr.top-sr.top+nr.height/2;
-    const dx=nx-hx,dy=ny-hy,len=Math.sqrt(dx*dx+dy*dy),angle=Math.atan2(dy,dx)*180/Math.PI;
-    const line=document.createElement("div");line.className="netline";line.style.left=hx+"px";line.style.top=hy+"px";line.style.width=len+"px";line.style.transform="rotate("+angle+"deg)";stage.appendChild(line);
-  });
-}
-window.addEventListener("load",connectNetwork);window.addEventListener("resize",()=>requestAnimationFrame(connectNetwork));
-
+if(!reduced&&"IntersectionObserver"in window){const io=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add("visible")}),{threshold:.14});document.querySelectorAll(".reveal").forEach(el=>io.observe(el))}else document.querySelectorAll(".reveal").forEach(el=>el.classList.add("visible"));
+document.querySelectorAll("[data-track]").forEach(el=>el.addEventListener("click",()=>track(el.dataset.track)));
 let formStarted=false;const waitlistForm=document.getElementById("waitlistForm");
 waitlistForm.addEventListener("focusin",()=>{if(!formStarted){formStarted=true;track("waitlist_form_started")}});
-const scrollMilestones=new Set();window.addEventListener("scroll",()=>{const doc=document.documentElement,max=Math.max(1,doc.scrollHeight-window.innerHeight),pct=Math.round((window.scrollY/max)*100);if(pct>=50&&!scrollMilestones.has(50)){scrollMilestones.add(50);track("scroll_50")}if(pct>=90&&!scrollMilestones.has(90)){scrollMilestones.add(90);track("scroll_90")}},{passive:true});
-document.querySelectorAll("[data-track]").forEach(el=>el.addEventListener("click",()=>track(el.dataset.track)));
-waitlistForm.addEventListener("submit",async(e)=>{e.preventDefault();const form=e.currentTarget,button=form.querySelector("button[type=submit]"),success=document.getElementById("success"),errorBox=document.getElementById("formError");success.style.display="none";errorBox.style.display="none";const fd=new FormData(form),formData=Object.fromEntries(fd.entries());if(!fd.get("email_consent")){errorBox.textContent="Please check the consent box before joining.";errorBox.style.display="block";return}button.disabled=true;button.textContent="Saving your spot…";const submission={type:"lead",first_name:formData.first_name||"",email:formData.email||"",work_type:formData.work_type||"",price_intent:"",referral_intent:formData.referral_intent||"",website:formData.website||"",email_consent:true,session_id:sessionId,...attribution};try{const result=await postToBackend(submission);success.style.display="block";button.textContent=result.existing?"Founding profile updated ✓":"You’re in ✓";const localWaitlist=JSON.parse(localStorage.getItem("youpaid_waitlist")||"[]");localWaitlist.push({...submission,submitted_at:new Date().toISOString()});localStorage.setItem("youpaid_waitlist",JSON.stringify(localWaitlist))}catch(err){errorBox.textContent=err.message||"We couldn’t save your request. Please try again.";errorBox.style.display="block";button.disabled=false;button.textContent="Get in early"}});
+waitlistForm.addEventListener("submit",async(e)=>{e.preventDefault();const form=e.currentTarget,button=form.querySelector("button[type=submit]"),success=document.getElementById("success"),errorBox=document.getElementById("formError");success.style.display="none";errorBox.style.display="none";const fd=new FormData(form),formData=Object.fromEntries(fd.entries());if(!fd.get("email_consent")){errorBox.textContent="Please check the consent box before joining.";errorBox.style.display="block";return}button.disabled=true;button.textContent="Saving your spot…";const submission={type:"lead",first_name:formData.first_name||"",email:formData.email||"",work_type:formData.work_type||"",price_intent:"",referral_intent:formData.referral_intent||"",website:formData.website||"",email_consent:true,session_id:sessionId,...attribution};try{const result=await postToBackend(submission);success.style.display="block";button.textContent=result.existing?"Profile updated ✓":"You're in ✓"}catch(err){errorBox.textContent=err.message||"We couldn't save your request. Please try again.";errorBox.style.display="block";button.disabled=false;button.textContent="Join the movement"}});
 </script>
-</body>
-</html>
+</body></html>
