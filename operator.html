@@ -348,6 +348,17 @@ async function verifyEmployment(id){
   await loadDashboard();
 }
 el("signIn").onclick=async()=>{el("authMsg").textContent="Signing in…";const {error}=await sb.auth.signInWithPassword({email:el("email").value.trim(),password:el("password").value});if(error){el("authMsg").textContent=error.message;return}await gate()};
+el("activateAdmin").onclick=async()=>{
+  const email=el("email").value.trim().toLowerCase(),password=el("password").value;
+  if(!email||password.length<8){el("authMsg").textContent="Enter the authorized admin email and a password of at least 8 characters.";return}
+  if(email!=="hello@joinyoupaid.com"){el("authMsg").textContent="That email is not eligible for first-time administrative activation.";return}
+  await sb.auth.signOut();
+  el("authMsg").textContent="Creating the secured admin identity…";
+  const {data,error}=await sb.auth.signUp({email,password,options:{emailRedirectTo:location.origin+"/operator.html"}});
+  if(error){el("authMsg").textContent=error.message;return}
+  if(data.session){await gate();return}
+  el("authMsg").textContent="Activation email sent. Confirm it from hello@joinyoupaid.com, then return here and sign in with the password you just chose.";
+};
 el("signOut").onclick=async()=>{await sb.auth.signOut();showAuth()};
 el("refresh").onclick=loadDashboard;el("refreshCompliance").onclick=loadDashboard;
 el("toggleFounderProgram").onclick=async()=>{
