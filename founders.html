@@ -103,7 +103,7 @@ button,.btn{border:0;border-radius:14px;padding:14px 17px;font-weight:900;cursor
         <div class="statuslabel" style="margin-top:15px">Amount due</div><div id="amountDue" class="statusvalue">—</div><div class="statuslabel" style="margin-top:15px">Payment</div><div id="paymentStatus" class="statusvalue">Not started</div>
       </div>
     </div>
-    <div id="checkoutNotice" class="truth" style="margin-top:18px">Your tier selection can be saved now. Founding status is secured only after successful payment.</div><div id="termsBox" class="panel" style="margin:14px 0 0;padding:16px"><label style="display:flex;gap:10px;align-items:flex-start;margin:0"><input id="termsCheck" type="checkbox" style="width:auto;margin:3px 0 0"><span>I have read and agree to the <a href="/founder-terms.html" target="_blank" style="color:var(--lime)">Founding Access Terms</a>.</span></label><div class="actions"><button id="acceptTerms" class="secondary">Accept terms</button><button id="paymentPending" class="primary" disabled>Secure payment activation pending</button></div><div id="termsMsg" class="msg">Payment processing is not live yet. No charge will be attempted from this page until the secure payment rail is activated.</div></div>
+    <div id="checkoutNotice" class="truth" style="margin-top:18px">Your tier selection can be saved now. Founding status is secured only after successful payment.</div><div id="termsBox" class="panel" style="margin:14px 0 0;padding:16px"><label style="display:flex;gap:10px;align-items:flex-start;margin:0"><input id="termsCheck" type="checkbox" style="width:auto;margin:3px 0 0"><span>I have read and agree to the <a href="/founder-terms.html" target="_blank" style="color:var(--lime)">Founding Access Terms</a>.</span></label><div class="actions"><button id="acceptTerms" class="secondary">Accept terms</button><button id="paymentPending" class="primary" disabled>Continue to secure checkout</button></div><div id="termsMsg" class="msg">Payment processing is not live yet. No charge will be attempted from this page until the secure payment rail is activated.</div></div>
   </div>
 </section>
 
@@ -127,7 +127,7 @@ const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const el=id=>document.getElementById(id);
 let pendingTier=new URLSearchParams(location.search).get("tier");
 let foundingProgramOpen=true;
-let foundingTermsVersion=null;
+let foundingTermsVersion=null;\nlet hasAcceptedTerms=false;
 if(!["founder","builder","cornerstone"].includes(pendingTier)) pendingTier=null;
 
 function sessionId(){let id=sessionStorage.getItem("youpaid_session_id");if(!id){id=crypto.randomUUID?crypto.randomUUID():"sess_"+Date.now()+"_"+Math.random().toString(36).slice(2);sessionStorage.setItem("youpaid_session_id",id)}return id}
@@ -162,8 +162,8 @@ async function refreshFounder(){
   const upgradePending=!!(membership&&intent&&tierRank(intent.tier_code)>tierRank(membership.tier_code)&&["selected","checkout_pending"].includes(intent.status));
   el("checkoutNotice").classList.remove("ok");
   el("checkoutNotice").textContent="Your tier selection can be saved now. Founding status is secured only after successful payment.";
-  if(termsAcceptance){el("termsCheck").checked=true;el("termsCheck").disabled=true;el("acceptTerms").textContent="Terms accepted ✓";el("acceptTerms").disabled=true;el("termsMsg").textContent="Founding Access Terms accepted for this program version. Secure payment processing is the remaining activation step."}
-  else{el("termsCheck").checked=false;el("termsCheck").disabled=false;el("acceptTerms").textContent="Accept terms";el("acceptTerms").disabled=false}
+  if(termsAcceptance){hasAcceptedTerms=true;el("termsCheck").checked=true;el("termsCheck").disabled=true;el("acceptTerms").textContent="Terms accepted ✓";el("acceptTerms").disabled=true;el("termsMsg").textContent="Founding Access Terms accepted. You can continue to secure checkout."}
+  else{hasAcceptedTerms=false;el("termsCheck").checked=false;el("termsCheck").disabled=false;el("acceptTerms").textContent="Accept terms";el("acceptTerms").disabled=false}
   if(upgradePending){
     el("founderHeading").textContent="Upgrade to "+tierName(intent.tier_code)+" selected";
     el("founderCopy").textContent="Your existing "+tierName(membership.tier_code)+" status remains secured. The upgrade becomes effective only after the additional payment succeeds.";
@@ -179,7 +179,7 @@ async function refreshFounder(){
     el("amountDue").textContent="$0.00";
     el("paymentStatus").textContent="Paid";
     el("checkoutNotice").textContent="Your Founding status is secured. If higher founding levels remain available before public launch, the system may allow an upgrade.";
-    el("checkoutNotice").classList.add("ok");
+    el("checkoutNotice").classList.add("ok");\n    el("paymentPending").disabled=true;\n    el("paymentPending").textContent="Founding status secured";
   }else if(intent){
     el("founderHeading").textContent=tierName(intent.tier_code)+" selected";
     el("founderCopy").textContent="Your selection is saved. It becomes secured only after successful payment.";
@@ -191,6 +191,16 @@ async function refreshFounder(){
     el("founderHeading").textContent="Choose a level above";
     el("founderCopy").textContent="Your account is ready. Choose the founding level you want to secure.";
     el("founderStatus").textContent="Not selected";el("founderTier").textContent="—";el("amountDue").textContent="—";el("paymentStatus").textContent="Not started";
+  }
+  const dueNow=(upgradePending||(!membership&&intent))&&Number(intent?.amount_cents||0)>0;
+  el("paymentPending").disabled=!(hasAcceptedTerms&&dueNow);
+  if(dueNow) el("paymentPending").textContent="Continue to secure checkout";
+  const checkoutState=new URLSearchParams(location.search).get("checkout");
+  if(checkoutState==="success"){
+    el("checkoutNotice").textContent="Payment submitted. We are confirming it now; your Founding status will update after payment confirmation.";
+    el("checkoutNotice").classList.add("ok");
+  }else if(checkoutState==="cancelled"){
+    el("checkoutNotice").textContent="Checkout was cancelled. Your Founding selection is still saved.";
   }
   if(pendingTier){const nextTier=pendingTier;pendingTier=null;await chooseTier(nextTier)}
 }
@@ -238,10 +248,39 @@ el("acceptTerms").onclick=async()=>{
   if(!el("termsCheck").checked){el("termsMsg").textContent="Check the box after reading the Founding Access Terms.";el("termsMsg").className="msg warn";return}
   const {error}=await sb.rpc("accept_founder_terms");
   if(error){el("termsMsg").textContent=error.message;el("termsMsg").className="msg danger";return}
-  el("termsMsg").textContent="Terms accepted. Your selected founding level is ready for secure payment activation.";el("termsMsg").className="msg ok";
+  el("termsMsg").textContent="Terms accepted. Your selected founding level is ready for secure checkout.";el("termsMsg").className="msg ok";
   await refreshFounder();
 };
-sb.auth.onAuthStateChange(()=>refreshFounder());
+
+el("paymentPending").onclick=async()=>{
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session){alert("Sign in first.");return}
+  if(!hasAcceptedTerms){el("termsMsg").textContent="Accept the Founding Access Terms before checkout.";el("termsMsg").className="msg warn";return}
+  const btn=el("paymentPending");
+  btn.disabled=true;btn.textContent="Opening secure checkout…";
+  el("termsMsg").textContent="Creating your secure checkout session…";el("termsMsg").className="msg";
+  try{
+    const res=await fetch(SUPABASE_URL+"/functions/v1/create-founder-checkout",{
+      method:"POST",
+      headers:{
+        "Authorization":"Bearer "+session.access_token,
+        "apikey":SUPABASE_KEY,
+        "Content-Type":"application/json"
+      },
+      body:"{}"
+    });
+    let body={};try{body=await res.json()}catch{}
+    if(!res.ok)throw new Error(body.error||"Unable to start secure checkout.");
+    if(!body.checkout_url)throw new Error("Secure checkout URL was not returned.");
+    await track("founder_checkout_started",{tier:el("founderTier").textContent,amount_due:el("amountDue").textContent});
+    location.assign(body.checkout_url);
+  }catch(err){
+    el("termsMsg").textContent=err.message||"Secure checkout is not available yet.";
+    el("termsMsg").className="msg danger";
+    btn.disabled=false;btn.textContent="Continue to secure checkout";
+  }
+};
+\nsb.auth.onAuthStateChange(()=>refreshFounder());
 loadProgramState().then(refreshFounder);
 </script>
 </body>
