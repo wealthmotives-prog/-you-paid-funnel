@@ -127,7 +127,8 @@ const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const el=id=>document.getElementById(id);
 let pendingTier=new URLSearchParams(location.search).get("tier");
 let foundingProgramOpen=true;
-let foundingTermsVersion=null;\nlet hasAcceptedTerms=false;
+let foundingTermsVersion=null;
+let hasAcceptedTerms=false;
 if(!["founder","builder","cornerstone"].includes(pendingTier)) pendingTier=null;
 
 function sessionId(){let id=sessionStorage.getItem("youpaid_session_id");if(!id){id=crypto.randomUUID?crypto.randomUUID():"sess_"+Date.now()+"_"+Math.random().toString(36).slice(2);sessionStorage.setItem("youpaid_session_id",id)}return id}
@@ -179,7 +180,9 @@ async function refreshFounder(){
     el("amountDue").textContent="$0.00";
     el("paymentStatus").textContent="Paid";
     el("checkoutNotice").textContent="Your Founding status is secured. If higher founding levels remain available before public launch, the system may allow an upgrade.";
-    el("checkoutNotice").classList.add("ok");\n    el("paymentPending").disabled=true;\n    el("paymentPending").textContent="Founding status secured";
+    el("checkoutNotice").classList.add("ok");
+    el("paymentPending").disabled=true;
+    el("paymentPending").textContent="Founding status secured";
   }else if(intent){
     el("founderHeading").textContent=tierName(intent.tier_code)+" selected";
     el("founderCopy").textContent="Your selection is saved. It becomes secured only after successful payment.";
@@ -228,7 +231,7 @@ document.querySelectorAll(".tierBtn").forEach(b=>b.addEventListener("click",()=>
 
 el("createAccount").onclick=async()=>{
   el("authMsg").textContent="Creating account…";
-  const {error}=await sb.auth.signUp({email:el("email").value.trim(),password:el("password").value,options:{data:{first_name:el("firstName").value.trim(),display_name:el("firstName").value.trim()}}});
+  const {error}=await sb.auth.signUp({email:el("email").value.trim(),password:el("password").value,options:{emailRedirectTo:location.origin+"/founders.html",data:{first_name:el("firstName").value.trim(),display_name:el("firstName").value.trim()}}});
   if(error){el("authMsg").textContent=error.message;el("authMsg").className="msg danger";return}
   el("authMsg").textContent="Account created. If email confirmation is required, confirm it and return here to sign in.";
   el("authMsg").className="msg ok";
