@@ -163,7 +163,7 @@ async function refreshFounder(){
   const upgradePending=!!(membership&&intent&&tierRank(intent.tier_code)>tierRank(membership.tier_code)&&["selected","checkout_pending"].includes(intent.status));
   el("checkoutNotice").classList.remove("ok");
   el("checkoutNotice").textContent="Your tier selection can be saved now. Founding status is secured only after successful payment.";
-  if(termsAcceptance){hasAcceptedTerms=true;el("termsCheck").checked=true;el("termsCheck").disabled=true;el("acceptTerms").textContent="Terms accepted ✓";el("acceptTerms").disabled=true;el("termsMsg").textContent="Founding Access Terms accepted. You can continue to secure checkout."}
+  if(termsAcceptance){hasAcceptedTerms=true;el("termsCheck").checked=true;el("termsCheck").disabled=true;el("acceptTerms").textContent="Terms accepted ✓";el("acceptTerms").disabled=true;el("termsMsg").textContent="Founding Access Terms accepted."}
   else{hasAcceptedTerms=false;el("termsCheck").checked=false;el("termsCheck").disabled=false;el("acceptTerms").textContent="Accept terms";el("acceptTerms").disabled=false}
   if(upgradePending){
     el("founderHeading").textContent="Upgrade to "+tierName(intent.tier_code)+" selected";
@@ -182,7 +182,7 @@ async function refreshFounder(){
     el("checkoutNotice").textContent="Your Founding status is secured. If higher founding levels remain available before public launch, the system may allow an upgrade.";
     el("checkoutNotice").classList.add("ok");
     el("paymentPending").disabled=true;
-    el("paymentPending").textContent="Founding status secured";
+    el("paymentPending").textContent="Founding status secured";\n    el("termsMsg").textContent="Payment confirmed. No further checkout is required for this level.";
   }else if(intent){
     el("founderHeading").textContent=tierName(intent.tier_code)+" selected";
     el("founderCopy").textContent="Your selection is saved. It becomes secured only after successful payment.";
@@ -199,7 +199,20 @@ async function refreshFounder(){
   el("paymentPending").disabled=!(hasAcceptedTerms&&dueNow);
   if(dueNow) el("paymentPending").textContent="Continue to secure checkout";
   const checkoutState=new URLSearchParams(location.search).get("checkout");
-  if(checkoutState==="success"){\n    if(membership && !upgradePending){\n      el("checkoutNotice").textContent="Payment confirmed. Your "+tierName(membership.tier_code)+" status is secured.";\n      el("checkoutNotice").classList.add("ok");\n      const cleanUrl=new URL(location.href);cleanUrl.searchParams.delete("checkout");history.replaceState(null,"",cleanUrl.pathname+cleanUrl.search+cleanUrl.hash);\n    }else{\n      el("checkoutNotice").textContent="Payment submitted. We are confirming it now; your Founding status will update automatically.";\n      el("checkoutNotice").classList.add("ok");\n      setTimeout(()=>refreshFounder(),1800);\n    }\n  }else if(checkoutState==="cancelled"){\n    el("checkoutNotice").textContent="Checkout was cancelled. Your Founding selection is still saved.";\n  }\n  if(pendingTier){const nextTier=pendingTier;pendingTier=null;await chooseTier(nextTier)}
+  if(checkoutState==="success"){
+    if(membership && !upgradePending){
+      el("checkoutNotice").textContent="Payment confirmed. Your "+tierName(membership.tier_code)+" status is secured.";
+      el("checkoutNotice").classList.add("ok");
+      const cleanUrl=new URL(location.href);cleanUrl.searchParams.delete("checkout");history.replaceState(null,"",cleanUrl.pathname+cleanUrl.search+cleanUrl.hash);
+    }else{
+      el("checkoutNotice").textContent="Payment submitted. We are confirming it now; your Founding status will update automatically.";
+      el("checkoutNotice").classList.add("ok");
+      setTimeout(()=>refreshFounder(),1800);
+    }
+  }else if(checkoutState==="cancelled"){
+    el("checkoutNotice").textContent="Checkout was cancelled. Your Founding selection is still saved.";
+  }
+  if(pendingTier){const nextTier=pendingTier;pendingTier=null;await chooseTier(nextTier)}
 }
 
 async function chooseTier(code){
