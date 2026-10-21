@@ -210,7 +210,7 @@ footer{border-top:1px solid var(--line);padding:34px 0 52px;color:#7f8c98;font-s
 <footer>
   <div class="wrap">
     <div class="footerlinks"><a href="/how-it-works.html">How It Works</a><a href="/faq.html">Full FAQ</a><a href="/about.html">Who We Are</a><a href="/founders.html">Founding Access</a><a href="/transparency.html">Trust</a><a href="/privacy.html">Privacy</a><a href="/terms.html">Terms</a><a href="/product-disclosure.html">Disclosure</a><a href="/contact.html">Contact</a><a href="/data-network.html">Partners & Data</a></div>
-    You Paid is operated by <a href="/operator.html" aria-label="850 Lifestyle LLC operator access">850 Lifestyle LLC</a>. Prelaunch only.
+    You Paid is operated by <span id="legalEntity" tabindex="0">850 Lifestyle LLC</span>. Prelaunch only.
   </div>
 </footer>
 
@@ -223,7 +223,7 @@ const attribution={hook:params.get("hook")||"default",utm_source:params.get("utm
 let events=JSON.parse(localStorage.getItem("youpaid_events")||"[]");
 async function postToBackend(payload){if(!TRACKING_CONFIG.webhookUrl)return{ok:true};const response=await fetch(TRACKING_CONFIG.webhookUrl,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload),keepalive:true});let body={};try{body=await response.json()}catch{}if(!response.ok)throw new Error(body.error||"Unable to save right now.");return body}
 function track(event,data={}){events.push({event,time:new Date().toISOString(),...attribution,...data});localStorage.setItem("youpaid_events",JSON.stringify(events));postToBackend({type:"event",event_name:event,session_id:sessionId,hook:attribution.hook,utm_source:attribution.utm_source,utm_medium:attribution.utm_medium,utm_campaign:attribution.utm_campaign,utm_content:attribution.utm_content,page_url:location.href,referrer:document.referrer||"direct",metadata:data}).catch(()=>{})}
-track("page_view");
+track("page_view");\nlet adminTapCount=0,adminTapTimer=null;const legalEntity=document.getElementById("legalEntity");if(legalEntity){const adminGesture=()=>{adminTapCount++;clearTimeout(adminTapTimer);adminTapTimer=setTimeout(()=>adminTapCount=0,2200);if(adminTapCount>=5){adminTapCount=0;location.href="/operator.html"}};legalEntity.addEventListener("click",adminGesture);legalEntity.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();adminGesture()}});}
 const reduced=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 if(!reduced&&"IntersectionObserver"in window){const io=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add("visible")}),{threshold:.14});document.querySelectorAll(".reveal").forEach(el=>io.observe(el))}else document.querySelectorAll(".reveal").forEach(el=>el.classList.add("visible"));
 document.querySelectorAll("[data-track]").forEach(el=>el.addEventListener("click",()=>track(el.dataset.track)));
