@@ -254,7 +254,7 @@ el("signUp").onclick = async()=>{
   const {error} = await sb.auth.signUp({
     email:el("email").value.trim(),
     password:el("password").value,
-    options:{data:{first_name:el("firstName").value.trim(),display_name:el("firstName").value.trim()}}
+    options:{emailRedirectTo:location.origin+"/app.html",data:{first_name:el("firstName").value.trim(),display_name:el("firstName").value.trim()}}
   });
   el("authMsg").textContent = error ? error.message : "Account created. Check your email if confirmation is required, then sign in.";
   if(!error) refresh();
