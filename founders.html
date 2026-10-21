@@ -182,7 +182,8 @@ async function refreshFounder(){
     el("checkoutNotice").textContent="Your Founding status is secured. If higher founding levels remain available before public launch, the system may allow an upgrade.";
     el("checkoutNotice").classList.add("ok");
     el("paymentPending").disabled=true;
-    el("paymentPending").textContent="Founding status secured";\n    el("termsMsg").textContent="Payment confirmed. No further checkout is required for this level.";
+    el("paymentPending").textContent="Founding status secured";
+    el("termsMsg").textContent="Payment confirmed. No further checkout is required for this level.";
   }else if(intent){
     el("founderHeading").textContent=tierName(intent.tier_code)+" selected";
     el("founderCopy").textContent="Your selection is saved. It becomes secured only after successful payment.";
