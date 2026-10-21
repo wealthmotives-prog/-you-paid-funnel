@@ -25,7 +25,7 @@ input,select,textarea{width:100%;padding:12px 13px;border-radius:11px;border:1px
     <label>Email<input id="email" type="email" autocomplete="email" placeholder="you@example.com"></label>
     <label>Password<input id="password" type="password" autocomplete="current-password" minlength="8" placeholder="8+ characters"></label>
     <label>First name<input id="firstName" type="text" autocomplete="given-name" placeholder="First name"></label>
-    <div class="actions"><button id="signUp">Create account</button><button id="signIn" class="secondary">Sign in</button></div>
+    <div class="actions"><button id="signUp">Create account</button><button id="signIn" class="secondary">Sign in</button><button id="resendConfirmation" class="secondary" type="button">Resend confirmation</button></div>
     <p id="authMsg" class="muted"></p>
   </section>
 
@@ -260,6 +260,13 @@ el("signUp").onclick = async()=>{
   if(!error) refresh();
 };
 
+el("resendConfirmation").onclick = async()=>{
+  const email=el("email").value.trim();
+  if(!email){el("authMsg").textContent="Enter your email first.";return}
+  el("authMsg").textContent="Sending a new confirmation email…";
+  const {error}=await sb.auth.resend({type:"signup",email,options:{emailRedirectTo:location.origin+"/app.html"}});
+  el("authMsg").textContent=error?error.message:"New confirmation email sent. Use the newest link.";
+};
 el("signIn").onclick = async()=>{
   el("authMsg").textContent="Signing in…";
   const {error} = await sb.auth.signInWithPassword({email:el("email").value.trim(),password:el("password").value});
