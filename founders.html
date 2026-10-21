@@ -291,7 +291,8 @@ el("paymentPending").onclick=async()=>{
     btn.disabled=false;btn.textContent="Continue to secure checkout";
   }
 };
-\nsb.auth.onAuthStateChange(()=>refreshFounder());
+
+sb.auth.onAuthStateChange(()=>refreshFounder());
 loadProgramState().then(refreshFounder);
 </script>
 </body>
