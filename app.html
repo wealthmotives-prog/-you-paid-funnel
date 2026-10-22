@@ -79,6 +79,19 @@ input,select,textarea{width:100%;padding:12px 13px;border-radius:11px;border:1px
       <div id="employmentList" class="stack"><p class="muted">No employment records yet.</p></div>
     </div>
 
+    <div class="section-title"><h2>Evidence intake</h2></div>
+    <div class="card">
+      <div class="notice">Prelaunch pilot: files are kept private and pending operator review. Uploading never establishes verified work or credit reporting. Please do not submit documents until secure scanning and lifecycle controls are enabled.</div>
+      <div class="row">
+        <label>Employment record<select id="evidenceEmployment"><option value="">Select an employment record</option></select></label>
+        <label>Document category<select id="evidenceType"><option value="paystub">Pay stub</option><option value="w2">W-2</option><option value="1099">1099</option><option value="timesheet">Timesheet</option><option value="employer_letter">Employer letter</option><option value="bank_payroll">Payroll deposit record</option><option value="platform_record">Platform record</option><option value="contract">Contract</option><option value="other">Other</option></select></label>
+      </div>
+      <label>Document (PDF, PNG, JPG; maximum 10 MB)<input id="evidenceFile" type="file" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" disabled></label>
+      <button id="evidenceUpload" type="button" disabled>Upload evidence (pilot pending)</button>
+      <p id="evidenceMsg" class="muted">Intake will be enabled after malware scanning, metadata reconciliation, retention, and access-control testing.</p>
+      <div style="overflow:auto;margin-top:14px"><table><thead><tr><th>Submitted</th><th>Type</th><th>Review</th></tr></thead><tbody id="evidenceRows"><tr><td colspan="3" class="muted">No submitted evidence.</td></tr></tbody></table></div>
+    </div>
+
     <div class="section-title"><h2>Historical & verification events</h2></div>
     <div class="card">
       <div class="notice">A historical event keeps its original work date. The verification date records when You Paid actually accepted sufficient evidence. Those dates should never be silently collapsed into one.</div>
@@ -212,6 +225,10 @@ async function refresh(){
     el("founderAction").textContent="Choose level";
   }
 
+  el("evidenceEmployment").innerHTML='<option value="">Select an employment record</option>'+(jobs||[]).map(j=>'<option value="'+j.id+'">'+escapeHtml(j.employer_name)+' · '+fmtDate(j.employment_start)+'</option>').join('');
+  const {data:evidence,error:evidenceError}=await sb.from("evidence_artifacts").select("id,artifact_type,review_status,received_at").eq("user_id",uid).order("received_at",{ascending:false}).limit(50);
+  el("evidenceRows").innerHTML=evidenceError?'<tr><td colspan="3" class="muted">Evidence status unavailable.</td></tr>': evidence?.length?evidence.map(a=>'<tr><td>'+fmtDate(a.received_at)+'</td><td>'+escapeHtml(a.artifact_type)+'</td><td>'+escapeHtml(a.review_status)+'</td></tr>').join(''):'<tr><td colspan="3" class="muted">No submitted evidence.</td></tr>';
+
   el("employmentList").innerHTML = jobs?.length ? jobs.map(j => `
     <div class="notice">
       <strong>${escapeHtml(j.employer_name)}</strong>${j.role_title ? " · "+escapeHtml(j.role_title) : ""}<br>
@@ -335,6 +352,47 @@ el("addEmployment").onclick = async()=>{
   if(error){el("employmentMsg").textContent=error.message;return;}
   el("employmentMsg").textContent="Employment record added. Verification is still pending.";
   el("employerName").value="";el("roleTitle").value="";el("employmentStart").value="";
+  refresh();
+};
+
+// Kept off until scanning, lifecycle and reconciliation are tested end-to-end.
+const EVIDENCE_INTAKE_ENABLED=false;
+const EVIDENCE_BUCKET="you-paid-work-evidence";
+el("evidenceFile").disabled=!EVIDENCE_INTAKE_ENABLED;
+el("evidenceUpload").disabled=!EVIDENCE_INTAKE_ENABLED;
+el("evidenceUpload").onclick=async()=>{
+  if(!EVIDENCE_INTAKE_ENABLED)return;
+  const msg=el("evidenceMsg");
+  const file=el("evidenceFile").files?.[0];
+  const employmentId=el("evidenceEmployment").value;
+  if(!employmentId||!file){msg.textContent="Select an employment record and file.";return;}
+  if(file.size<1||file.size>10485760){msg.textContent="File must be between 1 byte and 10 MB.";return;}
+  const types={"application/pdf":"pdf","image/jpeg":"jpg","image/png":"png"};
+  const ext=types[file.type];
+  if(!ext){msg.textContent="Only PDF, PNG, or JPEG files are accepted.";return;}
+  const bytes=await file.arrayBuffer();
+  const header=new Uint8Array(bytes.slice(0,8));
+  const pdf=header[0]===37&&header[1]===80&&header[2]===68&&header[3]===70&&header[4]===45;
+  const png=[137,80,78,71,13,10,26,10].every((x,i)=>header[i]===x);
+  const jpg=header[0]===255&&header[1]===216&&header[2]===255;
+  if(!((ext==="pdf"&&pdf)||(ext==="png"&&png)||(ext==="jpg"&&jpg))){msg.textContent="File contents do not match the selected format.";return;}
+  const {data:{user},error:userError}=await sb.auth.getUser();
+  if(userError||!user){msg.textContent="Please sign in again.";return;}
+  const {data:job,error:jobError}=await sb.from("employment_records").select("id").eq("id",employmentId).eq("user_id",user.id).maybeSingle();
+  if(jobError||!job){msg.textContent="Employment record could not be validated.";return;}
+  const hash=Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",bytes)),b=>b.toString(16).padStart(2,"0")).join("");
+  const path=user.id+"/"+crypto.randomUUID()+"."+ext;
+  msg.textContent="Submitting encrypted-transport evidence...";
+  const {error:uploadError}=await sb.storage.from(EVIDENCE_BUCKET).upload(path,file,{contentType:file.type,upsert:false,cacheControl:"0"});
+  if(uploadError){msg.textContent=uploadError.message;return;}
+  const {error:insertError}=await sb.from("evidence_artifacts").insert({
+    user_id:user.id, employment_id:employmentId, artifact_type:el("evidenceType").value,
+    content_hash:hash,storage_reference:EVIDENCE_BUCKET+"/"+path,evidence_level:1,
+    review_status:"received",metadata:{filename:file.name.slice(0,180),size_bytes:file.size,mime_type:file.type,hash_algorithm:"SHA-256",intake_version:"pilot_1"}
+  });
+  if(insertError){msg.textContent="File uploaded but registration requires operator reconciliation. Do not resubmit. Reference: "+path.split("/").at(-1);return;}
+  msg.textContent="Received for review; not verified.";
+  el("evidenceFile").value="";
   refresh();
 };
 
