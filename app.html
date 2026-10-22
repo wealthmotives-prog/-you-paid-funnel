@@ -276,6 +276,9 @@ el("signIn").onclick = async()=>{
 
 el("signOut").onclick = async()=>{ await sb.auth.signOut(); refresh(); };
 
+el("grantResearchConsent").onclick=async()=>{ el("consentMsg").textContent="Saving permission…"; const {error}=await sb.rpc("grant_data_sharing_consent",{p_consent_type:"research_analytics",p_consent_version:"research_v1_2026-10-22",p_scopes:["deidentified_product_research"],p_destination_id:null}); el("consentMsg").textContent=error?error.message:"Permission granted. You can revoke it at any time."; if(!error)refresh(); };
+el("revokeResearchConsent").onclick=async()=>{ const {data:{session}}=await sb.auth.getSession(); if(!session)return; const {data,error}=await sb.from("data_sharing_consents").select("id").eq("user_id",session.user.id).eq("consent_type","research_analytics").eq("status","granted").order("granted_at",{ascending:false}).limit(1).maybeSingle(); if(error){el("consentMsg").textContent=error.message;return} if(!data){el("consentMsg").textContent="No active research permission to revoke.";return} const out=await sb.rpc("revoke_data_sharing_consent",{p_consent_id:data.id}); el("consentMsg").textContent=out.error?out.error.message:"Permission revoked."; if(!out.error)refresh(); };
+
 el("submitPrivacyRequest").onclick = async()=>{
   const {data:{session}}=await sb.auth.getSession();
   if(!session)return;
