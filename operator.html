@@ -128,7 +128,12 @@ table{width:100%;border-collapse:collapse}th,td{padding:11px;border-bottom:1px s
         <div class="metric"><span>Active checkouts</span><strong id="activeCheckoutCount">0</strong></div>
         <div class="metric"><span>Failed webhook events</span><strong id="failedPaymentEventCount">0</strong></div>
         <div class="metric"><span>Unreconciled paid</span><strong id="unreconciledPaidCount">0</strong></div>
-        <div class="metric"><span>Membership drift</span><strong id="membershipDriftCount">0</strong></div>\n        <div class="metric"><span>Unprocessed events</span><strong id="unprocessedPaymentEventCount">0</strong></div>\n        <div class="metric"><span>Partial refunds</span><strong id="partialRefundCount">0</strong></div>\n        <div class="metric"><span>Full refunds</span><strong id="fullRefundCount">0</strong></div>\n        <div class="metric"><span>Integrity status</span><strong id="integrityStatus">—</strong></div>\n        <div class="metric"><span>Last integrity run</span><strong id="integrityRunAt">—</strong></div>
+        <div class="metric"><span>Membership drift</span><strong id="membershipDriftCount">0</strong></div>
+        <div class="metric"><span>Unprocessed events</span><strong id="unprocessedPaymentEventCount">0</strong></div>
+        <div class="metric"><span>Partial refunds</span><strong id="partialRefundCount">0</strong></div>
+        <div class="metric"><span>Full refunds</span><strong id="fullRefundCount">0</strong></div>
+        <div class="metric"><span>Integrity status</span><strong id="integrityStatus">—</strong></div>
+        <div class="metric"><span>Last integrity run</span><strong id="integrityRunAt">—</strong></div>
       </div>
     </div>
 
@@ -208,7 +213,7 @@ async function gate(){
 function showAuth(msg=""){el("authView").classList.remove("hidden");el("adminView").classList.add("hidden");el("signOut").classList.add("hidden");if(msg)el("authMsg").textContent=msg}
 
 async function loadDashboard(){
-  const [{data:snapshot},{data:integrityHistory}]=await Promise.all([sb.rpc("admin_command_center_snapshot"),sb.rpc("admin_payment_integrity_history",{p_limit:24})]);
+  const [{data:snapshot},{data:integrityHistory},{data:integrity}]=await Promise.all([sb.rpc("admin_command_center_snapshot"),sb.rpc("admin_payment_integrity_history",{p_limit:24}),sb.rpc("admin_latest_integrity")]);
   const [leads,members,pending,cycles,founderIntents,founderMemberships,founderContributions,founderProgram,checkoutSessions,termAcceptances,disputes,providers,destinations,transmissions,compliance,privacyRequests,vendorRisk,retention,incidents,sharingConsents] = await Promise.all([
     sb.from("waitlist_leads").select("first_name,email,work_type,referral_intent,created_at").order("created_at",{ascending:false}).limit(25),
     sb.rpc("admin_member_directory"),
@@ -253,7 +258,13 @@ async function loadDashboard(){
   el("activeCheckoutCount").textContent=snapshot?.active_checkout_sessions??0;
   el("failedPaymentEventCount").textContent=snapshot?.failed_payment_events??0;
   el("unreconciledPaidCount").textContent=snapshot?.unreconciled_paid_transactions??0;
-  el("membershipDriftCount").textContent=snapshot?.membership_drift??0;\n  el("unprocessedPaymentEventCount").textContent=snapshot?.received_unprocessed_events??0;\n  el("partialRefundCount").textContent=snapshot?.partial_refunds??0;\n  el("fullRefundCount").textContent=snapshot?.full_refunds??0;\n  const latestIntegrity=integrityHistory?.[0]||null;\n  el("integrityStatus").textContent=latestIntegrity?.severity?String(latestIntegrity.severity).toUpperCase():"—";\n  el("integrityRunAt").textContent=latestIntegrity?.audited_at?new Date(latestIntegrity.audited_at).toLocaleString():"—";\n  el("integrityStatus").textContent=integrity?.status||"—";\n  el("integrityRunAt").textContent=integrity?.run_at?new Date(integrity.run_at).toLocaleString():"—";
+  el("membershipDriftCount").textContent=snapshot?.membership_drift??0;
+  el("unprocessedPaymentEventCount").textContent=snapshot?.received_unprocessed_events??0;
+  el("partialRefundCount").textContent=snapshot?.partial_refunds??0;
+  el("fullRefundCount").textContent=snapshot?.full_refunds??0;
+  const latestIntegrity=integrityHistory?.[0]||null;
+  el("integrityStatus").textContent=integrity?.status||latestIntegrity?.severity?.toUpperCase()||"—";
+  el("integrityRunAt").textContent=integrity?.run_at?new Date(integrity.run_at).toLocaleString():(latestIntegrity?.audited_at?new Date(latestIntegrity.audited_at).toLocaleString():"—");
   const program=founderProgram.data;
   if(program){
     const open=program.status==="open";
