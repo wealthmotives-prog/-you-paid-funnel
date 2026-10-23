@@ -1,0 +1,25 @@
+name: Growth draft safety check
+on:
+  pull_request:
+    paths:
+      - 'marketing/drafts/**'
+      - 'scripts/check-marketing-draft.js'
+      - '.github/workflows/growth-draft-check.yml'
+  workflow_dispatch:
+jobs:
+  validate-drafts:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check each marketing draft
+        run: |
+          set -eu
+          for f in marketing/drafts/*.json; do
+            [ -f "$f" ] || continue
+            node scripts/check-marketing-draft.js "$f"
+          done
