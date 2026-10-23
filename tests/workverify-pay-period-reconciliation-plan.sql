@@ -1,0 +1,18 @@
+-- WorkVerify pay-period reconciliation regression plan (staging / synthetic-only).
+-- Do NOT run against real member records.
+-- Cases:
+-- 1. Sep 28–Oct 11 pay stub, 80 regular hours, no daily allocations:
+--    aggregate_only_unallocated, crosses_month_boundary=true, monthly_split_allowed=false.
+-- 2. Same period, authenticated user supplies ten 8-hour dated allocations:
+--    totals_reconciled_self_declared, monthly_split_allowed=true,
+--    actual_attendance_verified=false, credit_reportable=false.
+-- 3. Ten 8-hour allocations where stub says 76 hours:
+--    allocation_mismatch, monthly_split_allowed=false.
+-- 4. Daily allocation outside period: rejected by trigger.
+-- 5. Member attempts insert against different member's employer/pay-period: rejected.
+-- 6. Anonymous read: denied. Ordinary member UPDATE or DELETE: denied.
+-- 7. Leave and overtime are separate ledger categories: never converted into attended shifts.
+-- 8. No monthly split is allowed using even distribution of aggregate total.
+-- 9. Duplicate date in same pay period rejected by UNIQUE constraint.
+-- 10. Partial allocation with total mismatch stays pending.
+-- Need authenticated-session integration tests in staging before public form activation.
