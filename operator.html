@@ -421,6 +421,8 @@ el("toggleFounderProgram").onclick=async()=>{
 };
 function setWorkspace(name){const groups={money:["founders","paymentIntegrity","founderPipeline"],verification:["verification","disputes"],members:["members","waitlist"],risk:["risk","privacy","vendorRisk","retention","incidents","sharing"],network:["network","destinations","transmissions"]};const ids=Object.values(groups).flat();document.querySelectorAll(".commandnav a").forEach(a=>a.classList.toggle("active",a.dataset.workspace===name));ids.forEach(id=>{const node=el(id);if(node)node.classList.toggle("workspace-hidden",name!=="overview"&&!(groups[name]||[]).includes(id))});}document.querySelectorAll(".commandnav a").forEach(a=>a.addEventListener("click",e=>{e.preventDefault();setWorkspace(a.dataset.workspace);window.scrollTo({top:document.querySelector(".commandnav").offsetTop,behavior:"smooth"});}));
 
+sb.auth.onAuthStateChange(()=>{ setTimeout(()=>{gate().catch(()=>showAuth("Operator authorization check failed. Refresh and retry."));},0); });
+gate().catch(()=>showAuth("Could not check operator access. Refresh and retry."));
 </script>
 </body>
 </html>
