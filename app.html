@@ -64,17 +64,19 @@ input,select,textarea{width:100%;padding:12px 13px;border-radius:11px;border:1px
       </div>
     </div>
 
+    <p class="muted" style="font-size:13px">Need account or privacy assistance? <a href="/data-requests.html">Privacy and data requests</a></p>
+
     <div class="section-title"><h2>Employment</h2></div>
     <div class="card">
       <div class="row">
         <label>Employer<input id="employerName" placeholder="Employer name"></label>
-        <label>Role<input id="roleTitle" placeholder="Role or title"></label>
+        <label>Employer address (required)<input id="employerAddress" required maxlength="500" autocomplete="street-address" placeholder="Street address, city, state, postal code"></label>
       </div>
       <div class="row">
-        <label>Employment start<input id="employmentStart" type="date"></label>
+        <label>Employment start (month/year)<input id="employmentStart" type="month" required></label>
         <label>Status<select id="employmentStatus"><option value="active">Active</option><option value="leave">Leave</option><option value="ended">Ended</option></select></label>
       </div>
-      <button id="addEmployment">Add employment record</button>
+      <div class="row"><label>Employer phone (optional)<input id="employerPhone" type="tel" autocomplete="off" placeholder="Company telephone"></label><label>Employer contact email (optional)<input id="employerContactEmail" type="email" autocomplete="off" placeholder="HR or authorized contact email"></label></div><p class="muted" style="font-size:12px">Employer contact details are collected for potential verification and will not trigger messages or calls without a separate authorization.</p><button id="addEmployment">Add employment record</button>
       <p id="employmentMsg" class="muted"></p>
     </div>
 
@@ -104,8 +106,8 @@ input,select,textarea{width:100%;padding:12px 13px;border-radius:11px;border:1px
       </div>
     </div>
 
-    <div class="section-title"><h2>Reporting status</h2></div>
-    <div class="card">
+    <div class="section-title" style="display:none"><h2>Reporting status</h2></div>
+    <div class="card" style="display:none">
       <div class="notice">Verification and reporting are separate. This section will show real downstream transmissions only after an authorized reporting destination exists and a transmission actually occurs.</div>
       <div style="overflow:auto;margin-top:14px">
         <table><thead><tr><th>Destination</th><th>Type</th><th>Period</th><th>Status</th><th>Sent</th></tr></thead><tbody id="transmissionRows"><tr><td colspan="5" class="muted">No reporting transmissions yet.</td></tr></tbody></table>
@@ -125,8 +127,8 @@ input,select,textarea{width:100%;padding:12px 13px;border-radius:11px;border:1px
     </div>
 
 
-    <div class="section-title"><h2>Privacy & data requests</h2></div>
-    <div class="card">
+    <div class="section-title" style="display:none"><h2>Privacy & data requests</h2></div>
+    <div class="card" style="display:none">
       <p class="muted">Use this authenticated request channel for access, correction, deletion, restriction, marketing opt-out, source information, or sharing information. Verification-record accuracy disputes should continue to use the Corrections & disputes section above.</p>
       <div class="row">
         <label>Request type<select id="privacyRequestType">
@@ -149,8 +151,8 @@ input,select,textarea{width:100%;padding:12px 13px;border-radius:11px;border:1px
       <p class="muted" style="margin-bottom:0">See <a href="/data-requests.html">Privacy & Data Requests</a> for additional information about identity verification and records that may need to be retained.</p>
     </div>
 
-    <div class="section-title"><h2>Data permissions</h2></div>
-    <div class="card">
+    <div class="section-title" style="display:none"><h2>Data permissions</h2></div>
+    <div class="card" style="display:none">
       <div class="notice">You Paid does not treat general Terms acceptance as blanket permission for optional downstream sharing. Where consent is the basis for a specific future sharing use, the permission should be purpose-specific, versioned, and revocable where applicable.</div>
       <div style="overflow:auto;margin-top:14px">
         <table><thead><tr><th>Permission</th><th>Version</th><th>Scope</th><th>Status</th><th>Granted</th></tr></thead><tbody id="consentRows"><tr><td colspan="5" class="muted">No optional downstream sharing permissions granted.</td></tr></tbody></table>
@@ -348,19 +350,26 @@ el("addEmployment").onclick = async()=>{
   const {data:{session}} = await sb.auth.getSession();
   if(!session) return;
   const employer = el("employerName").value.trim();
-  const start = el("employmentStart").value;
-  if(!employer || !start){el("employmentMsg").textContent="Employer and start date are required.";return;}
+  const startMonth = el("employmentStart").value;
+  const address = el("employerAddress").value.trim();
+  const phone = el("employerPhone").value.trim();
+  const contactEmail = el("employerContactEmail").value.trim();
+  const start = /^\d{4}-(0[1-9]|1[0-2])$/.test(startMonth)?startMonth+"-01":"";
+  if(!employer || !start || address.length<8){el("employmentMsg").textContent="Employer, employer address and start month/year are required.";return;}
+  if(contactEmail && !el("employerContactEmail").checkValidity()){el("employmentMsg").textContent="Enter a valid employer email or leave it blank.";return;}
   el("employmentMsg").textContent="Saving…";
   const {error} = await sb.from("employment_records").insert({
     user_id:session.user.id,
     employer_name:employer,
-    role_title:el("roleTitle").value.trim() || null,
+    employer_address:address,
+    employer_phone:phone || null,
+    employer_contact_email:contactEmail || null,
     employment_start:start,
     employment_status:el("employmentStatus").value
   });
   if(error){el("employmentMsg").textContent=error.message;return;}
   el("employmentMsg").textContent="Employment record added. Verification is still pending.";
-  el("employerName").value="";el("roleTitle").value="";el("employmentStart").value="";
+  ["employerName","employerAddress","employerPhone","employerContactEmail","employmentStart"].forEach(id=>el(id).value="");
   refresh();
 };
 
