@@ -1,0 +1,47 @@
+{
+  "version": "1.0",
+  "brand": "You Paid",
+  "mode": "draft_only",
+  "auto_publish": false,
+  "auto_spend": false,
+  "approval_required": true,
+  "claims": {
+    "bureaus_active": false,
+    "guaranteed_score_gain": false,
+    "employer_integrations_live": false,
+    "evidence_upload_public": false
+  },
+  "channels": [
+    "instagram",
+    "tiktok",
+    "youtube_shorts",
+    "linkedin",
+    "email"
+  ],
+  "queue_states": [
+    "idea",
+    "researching",
+    "drafted",
+    "fact_checked",
+    "owner_review",
+    "approved",
+    "scheduled",
+    "published",
+    "measured",
+    "archived"
+  ],
+  "templates": [
+    {
+      "id": "work_story",
+      "hook": "Your work has a story worth documenting.",
+      "cta": "Discover what we're building",
+      "status": "drafted"
+    },
+    {
+      "id": "builder_invite",
+      "hook": "Help shape a new way to organize work history.",
+      "cta": "Explore You Paid",
+      "status": "drafted"
+    }
+  ]
+}
