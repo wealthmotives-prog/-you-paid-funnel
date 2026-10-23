@@ -41,6 +41,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:11px;border-bottom:1px s
     </section>
 
     <nav class="commandnav"><a href="#overview" data-workspace="overview" class="active">Overview</a><a href="#founders" data-workspace="money">Money</a><a href="#verification" data-workspace="verification">Verification</a><a href="#members" data-workspace="members">Members</a><a href="#risk" data-workspace="risk">Risk</a><a href="#network" data-workspace="network">Network</a></nav>
+    <p id="dashboardDataWarning" class="muted hidden" role="status" style="padding:12px 14px;border:1px solid #b88140;border-radius:10px">Some dashboard data could not be loaded. A dash means unavailable, not zero. Refresh or contact the operator administrator.</p>
     <div class="grid" id="overview">
       <div class="card metric"><span class="muted">Waitlist</span><strong id="leadCount">—</strong></div>
       <div class="card metric"><span class="muted">Members</span><strong id="memberCount">—</strong></div>
@@ -213,7 +214,7 @@ async function gate(){
 function showAuth(msg=""){el("authView").classList.remove("hidden");el("adminView").classList.add("hidden");el("signOut").classList.add("hidden");if(msg)el("authMsg").textContent=msg}
 
 async function loadDashboard(){
-  const [{data:snapshot},{data:integrityHistory},{data:integrity}]=await Promise.all([sb.rpc("admin_command_center_snapshot"),sb.rpc("admin_payment_integrity_history",{p_limit:24}),sb.rpc("admin_latest_integrity")]);
+  const [{data:snapshot,error:snapshotError},{data:integrityHistory},{data:integrity}]=await Promise.all([sb.rpc("admin_command_center_snapshot"),sb.rpc("admin_payment_integrity_history",{p_limit:24}),sb.rpc("admin_latest_integrity")]);
   const [leads,members,pending,cycles,founderIntents,founderMemberships,founderContributions,founderProgram,checkoutSessions,termAcceptances,disputes,providers,destinations,transmissions,compliance,privacyRequests,vendorRisk,retention,incidents,sharingConsents] = await Promise.all([
     sb.from("waitlist_leads").select("first_name,email,work_type,referral_intent,created_at").order("created_at",{ascending:false}).limit(25),
     sb.rpc("admin_member_directory"),
@@ -248,9 +249,14 @@ async function loadDashboard(){
     sb.from("data_providers").select("id",{count:"exact",head:true}),
     sb.from("reporting_destinations").select("id",{count:"exact",head:true})
   ]);
-  el("leadCount").textContent=snapshot?.waitlist??leadCount.count??0;el("memberCount").textContent=snapshot?.members??memberCount.count??0;el("pendingCount").textContent=snapshot?.pending_employment??pendingCount.count??0;el("cycleCount").textContent=snapshot?.verified_cycles??cycles.count??0;
-  el("founderIntentCount").textContent=snapshot?.paid_transactions??founderIntentCount.count??0;el("founderSecuredCount").textContent=snapshot?.secured_founders??founderSecuredCount.count??0;el("cornerstoneCount").textContent=snapshot?.cornerstones??cornerstoneCount.count??0;
-  el("historicalCount").textContent=snapshot?.historical_verified_events??historicalCount.count??0;el("disputeCount").textContent=snapshot?.open_disputes??disputeCount.count??0;el("providerCount").textContent=snapshot?.data_providers??providerCount.count??0;el("destinationCount").textContent=snapshot?.reporting_destinations??destinationCount.count??0;
+  const countFailures=[["waitlist",leadCount],["members",memberCount],["pending",pendingCount],["founder intents",founderIntentCount],["founder memberships",founderSecuredCount],["cornerstones",cornerstoneCount],["historical events",historicalCount],["disputes",disputeCount],["providers",providerCount],["destinations",destinationCount]].filter(([,v])=>v.error);
+  const dashboardErrors=[...countFailures.map(([name])=>name),...(snapshotError?["administrative summary"]:[])];
+  el("dashboardDataWarning").classList.toggle("hidden",dashboardErrors.length===0);
+  if(dashboardErrors.length)console.warn("Operator dashboard data unavailable",dashboardErrors);
+  const shown=(primary,fallback)=>primary??fallback??"—";
+  el("leadCount").textContent=shown(snapshot?.waitlist,leadCount.count);el("memberCount").textContent=shown(snapshot?.members,memberCount.count);el("pendingCount").textContent=shown(snapshot?.pending_employment,pendingCount.count);el("cycleCount").textContent=shown(snapshot?.verified_cycles,cycles.count);
+  el("founderIntentCount").textContent=shown(snapshot?.paid_transactions,founderIntentCount.count);el("founderSecuredCount").textContent=shown(snapshot?.secured_founders,founderSecuredCount.count);el("cornerstoneCount").textContent=shown(snapshot?.cornerstones,cornerstoneCount.count);
+  el("historicalCount").textContent=shown(snapshot?.historical_verified_events,historicalCount.count);el("disputeCount").textContent=shown(snapshot?.open_disputes,disputeCount.count);el("providerCount").textContent=shown(snapshot?.data_providers,providerCount.count);el("destinationCount").textContent=shown(snapshot?.reporting_destinations,destinationCount.count);
 
   renderCompliance(compliance.data||[]);
   const paidRevenue=snapshot?.founder_revenue_cents??(founderContributions.data||[]).filter(x=>x.status==="paid").reduce((sum,x)=>sum+Number(x.amount_cents||0),0);
