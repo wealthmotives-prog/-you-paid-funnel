@@ -43,6 +43,10 @@ input,select,textarea{width:100%;padding:12px 13px;border-radius:11px;border:1px
     </div>
 
 
+    <div class="section-title"><h2>Your You Paid account</h2></div>
+    <div class="card"><p class="muted">Your internal member reference, not a credit bureau tradeline.</p>
+    <strong id="accountReference" style="font-size:22px">Loading…</strong>
+    <p id="accountState" class="muted">Pending activation · No credit reporting is active.</p></div>
     <div class="section-title"><h2>Founding status</h2></div>
     <div class="card" id="founderCard">
       <div class="actions" style="justify-content:space-between;align-items:center">
@@ -182,7 +186,8 @@ async function refresh(){
   if(!logged) return;
 
   const uid = session.user.id;
-  const [{data:profile},{data:jobs},{data:cycles},{data:founderIntent},{data:founderMembership},{data:events},{data:disputes},{data:transmissions},{data:privacyRequests},{data:sharingConsents}] = await Promise.all([
+  const [{data:reservation},{data:profile},{data:jobs},{data:cycles},{data:founderIntent},{data:founderMembership},{data:events},{data:disputes},{data:transmissions},{data:privacyRequests},{data:sharingConsents}] = await Promise.all([
+    sb.from("member_account_reservations").select("public_reference,account_state,enrollment_fee_status,subscription_status").eq("user_id",uid).maybeSingle(),
     sb.from("member_profiles").select("*").eq("user_id",uid).maybeSingle(),
     sb.from("employment_records").select("*").eq("user_id",uid).order("employment_start",{ascending:false}),
     sb.from("monthly_work_cycles").select("*").eq("user_id",uid).order("cycle_month",{ascending:false}),
@@ -195,6 +200,10 @@ async function refresh(){
     sb.from("data_sharing_consents").select("id,consent_type,consent_version,scopes,status,granted_at,revoked_at").eq("user_id",uid).order("created_at",{ascending:false}).limit(50)
   ]);
 
+  el("accountReference").textContent=reservation?.public_reference||"Pending reservation";
+  el("accountState").textContent=reservation
+   ? "Status: "+reservation.account_state.replaceAll("_"," ")+". Enrollment: "+reservation.enrollment_fee_status.replaceAll("_"," ")+". Subscription: "+reservation.subscription_status.replaceAll("_"," ")+". Credit reporting is not active."
+   : "Internal account reservation pending. Credit reporting is not active.";
   el("memberSince").textContent = profile ? fmtDate(profile.joined_at) : "Today";
   el("employmentCount").textContent = jobs?.length || 0;
   el("verifiedCycles").textContent = (cycles||[]).filter(x=>x.cycle_status==="verified").length;
