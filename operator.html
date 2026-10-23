@@ -250,9 +250,10 @@ async function loadDashboard(){
     sb.from("reporting_destinations").select("id",{count:"exact",head:true})
   ]);
   const countFailures=[["waitlist",leadCount],["members",memberCount],["pending",pendingCount],["founder intents",founderIntentCount],["founder memberships",founderSecuredCount],["cornerstones",cornerstoneCount],["historical events",historicalCount],["disputes",disputeCount],["providers",providerCount],["destinations",destinationCount]].filter(([,v])=>v.error);
-  const dashboardErrors=[...countFailures.map(([name])=>name),...(snapshotError?["administrative summary"]:[])];
+  const dashboardErrors=snapshot&&typeof snapshot==="object"?[]:[...countFailures.map(([name])=>name),...(snapshotError?["administrative summary"]:[])];
   el("dashboardDataWarning").classList.toggle("hidden",dashboardErrors.length===0);
-  if(dashboardErrors.length)console.warn("Operator dashboard data unavailable",dashboardErrors);
+  if(dashboardErrors.length)el("dashboardDataWarning").textContent="Operator totals could not be loaded reliably. "+(snapshotError?.message?"Summary: "+snapshotError.message+". ":"")+"A dash means unavailable, not zero. Do not treat these figures as business totals.";
+  if(dashboardErrors.length)console.warn("Operator dashboard summary unavailable", {issues:dashboardErrors,summaryError:snapshotError?.message||null});
   const shown=(primary,fallback)=>primary??fallback??"—";
   el("leadCount").textContent=shown(snapshot?.waitlist,leadCount.count);el("memberCount").textContent=shown(snapshot?.members,memberCount.count);el("pendingCount").textContent=shown(snapshot?.pending_employment,pendingCount.count);el("cycleCount").textContent=shown(snapshot?.verified_cycles,cycles.count);
   el("founderIntentCount").textContent=shown(snapshot?.paid_transactions,founderIntentCount.count);el("founderSecuredCount").textContent=shown(snapshot?.secured_founders,founderSecuredCount.count);el("cornerstoneCount").textContent=shown(snapshot?.cornerstones,cornerstoneCount.count);
