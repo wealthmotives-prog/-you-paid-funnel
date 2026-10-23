@@ -90,17 +90,24 @@ footer{border-top:1px solid var(--line);padding:34px 0 52px;color:#7f8c98;font-s
       </div>
       <p class="note" style="margin-top:16px">Now: member work-history and schedule records. Next: evidence-backed verification and WorkScore. Credit bureau furnishing is not active; no credit-score outcome is guaranteed.</p>
     </div>
-    <div class="hero-card reveal">
-      <div class="recordtop"><span class="eyebrow">Illustrative record</span><span class="verified"><span class="pulse"></span> CONCEPT</span></div>
-      <div class="bigmetric">4 yrs 7 mos</div>
-      <div class="note">Verified work tenure</div>
+    <div class="hero-card reveal" aria-label="Interactive WorkScore concept">
+      <div class="recordtop"><span class="eyebrow">Explore the WorkScore concept</span><span class="verified">INTERACTIVE DEMO</span></div>
+      <h2 style="font-size:23px;margin:14px 0 8px">Every month tells a different story.</h2>
+      <p class="note">Choose a month to see how a normal five-day workweek changes across the calendar.</p>
+      <label for="demoMonth" style="display:block;margin-top:15px;font-size:13px">Calendar month</label>
+      <select id="demoMonth" style="width:100%;padding:12px;border:1px solid #40505b;border-radius:10px;background:#111922;color:#fff;margin:7px 0 14px">
+        <option value="2026-02">February 2026</option>
+        <option value="2026-10" selected>October 2026</option>
+        <option value="2026-11">November 2026</option>
+      </select>
       <div class="metricgrid">
-        <div class="metric"><span>Past work</span><strong>Verified</strong></div>
-        <div class="metric"><span>Current status</span><strong>Active</strong></div>
-        <div class="metric"><span>Consistency</span><strong>8 mo</strong></div>
-        <div class="metric"><span>Income minimum</span><strong>None</strong></div>
+        <div class="metric"><span>Expected schedule</span><strong>Mon–Fri</strong></div>
+        <div class="metric"><span>Weekly hours</span><strong>40</strong></div>
+        <div class="metric"><span>Scheduled weekdays</span><strong id="demoDays">22</strong></div>
+        <div class="metric"><span>Nominal hours</span><strong id="demoHours">176</strong></div>
       </div>
-      <p class="note">Simulation only. Actual verification depends on available evidence.</p>
+      <p id="demoExplain" class="note" aria-live="polite">An illustrative schedule estimate, not evidence that someone attended those shifts.</p>
+      <p class="note"><strong>Our promise:</strong> distinguish what a member declares from what reliable evidence confirms. No invented late payments or credit-score guarantees.</p>
     </div>
   </div>
 </section>
@@ -231,5 +238,21 @@ document.querySelectorAll("[data-track]").forEach(el=>el.addEventListener("click
 let formStarted=false;const waitlistForm=document.getElementById("waitlistForm");
 if(waitlistForm)waitlistForm.addEventListener("focusin",()=>{if(!formStarted){formStarted=true;track("waitlist_form_started")}});
 if(waitlistForm)waitlistForm.addEventListener("submit",async(e)=>{e.preventDefault();const form=e.currentTarget,button=form.querySelector("button[type=submit]"),success=document.getElementById("success"),errorBox=document.getElementById("formError");success.style.display="none";errorBox.style.display="none";const fd=new FormData(form),formData=Object.fromEntries(fd.entries());if(!fd.get("email_consent")){errorBox.textContent="Please check the consent box before joining.";errorBox.style.display="block";return}button.disabled=true;button.textContent="Saving your spot…";const submission={type:"lead",first_name:formData.first_name||"",email:formData.email||"",work_type:formData.work_type||"",price_intent:"",referral_intent:formData.referral_intent||"",website:formData.website||"",email_consent:true,session_id:sessionId,...attribution};try{const result=await postToBackend(submission);success.style.display="block";button.textContent=result.existing?"Profile updated ✓":"You're in ✓"}catch(err){errorBox.textContent=err.message||"We couldn't save your request. Please try again.";errorBox.style.display="block";button.disabled=false;button.textContent="Join the movement"}});
+
+const demoMonth=document.getElementById("demoMonth");
+if(demoMonth){
+ const updateDemo=()=>{
+  const parts=demoMonth.value.split("-").map(Number),year=parts[0],month=parts[1];
+  const days=new Date(Date.UTC(year,month,0)).getUTCDate();let scheduled=0;
+  for(let d=1;d<=days;d++){
+   const weekday=new Date(Date.UTC(year,month-1,d)).getUTCDay();
+   if(weekday>=1&&weekday<=5)scheduled++;
+  }
+  document.getElementById("demoDays").textContent=String(scheduled);
+  document.getElementById("demoHours").textContent=String(scheduled*8);
+  document.getElementById("demoExplain").textContent=scheduled+" scheduled weekdays × 8 hours = "+(scheduled*8)+" nominal hours. Holidays, approved leave, changing shifts and actual attendance require separate evidence.";
+ };
+ demoMonth.addEventListener("change",updateDemo);updateDemo();
+}
 </script>
 </body></html>
