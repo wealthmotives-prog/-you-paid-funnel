@@ -1,0 +1,18 @@
+{
+  "id": "work-story-001",
+  "status": "drafted",
+  "channel": "instagram",
+  "headline": "Your work has a story worth documenting.",
+  "body": "You Paid is building tools to help people organize work history and pursue evidence-backed verification.",
+  "cta": "Discover what we're building at joinyoupaid.com",
+  "claims": [
+    {
+      "text": "Work-history verification tools in development",
+      "classification": "in_development",
+      "source": "agents/you-paid-growth-agent.md"
+    }
+  ],
+  "auto_publish": false,
+  "auto_spend": false,
+  "owner_approved": false
+}
