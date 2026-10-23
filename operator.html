@@ -207,7 +207,8 @@ async function gate(){
   const {data:{session}}=await sb.auth.getSession();
   if(!session){showAuth();return}
   const {data:isAdmin,error}=await sb.rpc("is_you_paid_admin");
-  if(error||!isAdmin){showAuth("This account is not authorized for operator access.");return}
+  if(error){el("authMsg").textContent="Operator authorization check temporarily failed: "+error.message;return}
+  if(isAdmin!==true){showAuth("This account is not authorized for operator access.");return}
   el("authView").classList.add("hidden");el("adminView").classList.remove("hidden");el("signOut").classList.remove("hidden");
   await loadDashboard();
 }
@@ -421,8 +422,9 @@ el("toggleFounderProgram").onclick=async()=>{
 };
 function setWorkspace(name){const groups={money:["founders","paymentIntegrity","founderPipeline"],verification:["verification","disputes"],members:["members","waitlist"],risk:["risk","privacy","vendorRisk","retention","incidents","sharing"],network:["network","destinations","transmissions"]};const ids=Object.values(groups).flat();document.querySelectorAll(".commandnav a").forEach(a=>a.classList.toggle("active",a.dataset.workspace===name));ids.forEach(id=>{const node=el(id);if(node)node.classList.toggle("workspace-hidden",name!=="overview"&&!(groups[name]||[]).includes(id))});}document.querySelectorAll(".commandnav a").forEach(a=>a.addEventListener("click",e=>{e.preventDefault();setWorkspace(a.dataset.workspace);window.scrollTo({top:document.querySelector(".commandnav").offsetTop,behavior:"smooth"});}));
 
-sb.auth.onAuthStateChange(()=>{ setTimeout(()=>{gate().catch(()=>showAuth("Operator authorization check failed. Refresh and retry."));},0); });
-gate().catch(()=>showAuth("Could not check operator access. Refresh and retry."));
+// Sign-in and initial page load each perform their own authorization check.
+// Avoid concurrent auth callbacks which previously overwrote a valid operator session.
+gate().catch(error=>{el("authMsg").textContent="Could not check operator access: "+(error?.message||"Unknown error");});
 </script>
 </body>
 </html>
