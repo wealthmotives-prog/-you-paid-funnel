@@ -97,6 +97,16 @@ input,select,textarea{width:100%;padding:12px 13px;border-radius:11px;border:1px
         <label>Expected hours per week<input id="scheduleHours" type="number" min="0" max="168" step="0.25" placeholder="e.g. 40"></label>
         <label>Expected days per week<input id="scheduleDays" type="number" min="0" max="7" step="1" placeholder="e.g. 5"></label>
       </div>
+      <p class="muted" style="margin-bottom:6px">Normal workdays (optional; needed for accurate calendar estimates)</p>
+      <div style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:12px">
+        <label><input class="scheduleWeekday" type="checkbox" value="1" style="width:auto"> Mon</label>
+        <label><input class="scheduleWeekday" type="checkbox" value="2" style="width:auto"> Tue</label>
+        <label><input class="scheduleWeekday" type="checkbox" value="3" style="width:auto"> Wed</label>
+        <label><input class="scheduleWeekday" type="checkbox" value="4" style="width:auto"> Thu</label>
+        <label><input class="scheduleWeekday" type="checkbox" value="5" style="width:auto"> Fri</label>
+        <label><input class="scheduleWeekday" type="checkbox" value="6" style="width:auto"> Sat</label>
+        <label><input class="scheduleWeekday" type="checkbox" value="7" style="width:auto"> Sun</label>
+      </div>
       <button id="saveSchedule" type="button">Save expected schedule</button>
       <p id="scheduleMsg" class="muted" role="status" aria-live="polite"></p>
       <div id="scheduleList" class="stack"></div>
@@ -206,7 +216,7 @@ async function refresh(){
 
   const uid = session.user.id;
   const [{data:schedules},{data:reservation},{data:profile},{data:jobs},{data:cycles},{data:founderIntent},{data:founderMembership},{data:events},{data:disputes},{data:transmissions},{data:privacyRequests},{data:sharingConsents}] = await Promise.all([
-    sb.from("work_schedule_declarations").select("id,employment_id,employment_type,expected_hours_per_week,expected_days_per_week,effective_month,evidence_status,created_at").eq("user_id",uid).order("effective_month",{ascending:false}),
+    sb.from("work_schedule_declarations").select("id,employment_id,employment_type,expected_hours_per_week,expected_days_per_week,expected_iso_weekdays,effective_month,evidence_status,created_at").eq("user_id",uid).order("effective_month",{ascending:false}),
     sb.from("member_account_reservations").select("public_reference,account_state,enrollment_fee_status,subscription_status").eq("user_id",uid).maybeSingle(),
     sb.from("member_profiles").select("*").eq("user_id",uid).maybeSingle(),
     sb.from("employment_records").select("*").eq("user_id",uid).order("employment_start",{ascending:false}),
@@ -378,10 +388,12 @@ el("saveSchedule").onclick=async()=>{
     if(!employmentId||!/^\d{4}-(0[1-9]|1[0-2])$/.test(m)){msg.textContent="Choose an employer and an effective month.";return;}
     if(h===""&&d===""){msg.textContent="Provide expected hours or days per week.";return;}
     if((h!==""&&(!Number.isFinite(Number(h))||Number(h)<0||Number(h)>168))||(d!==""&&(!Number.isInteger(Number(d))||Number(d)<0||Number(d)>7))){msg.textContent="Check your hours (0–168) and days (0–7).";return;}
+    const weekdays=[...document.querySelectorAll(".scheduleWeekday:checked")].map(node=>Number(node.value));
+    if(weekdays.length && d!=="" && weekdays.length!==Number(d)){msg.textContent="Select the same number of weekdays as expected days per week.";return;}
     msg.textContent="Saving schedule…";
     const {error}=await sb.from("work_schedule_declarations").insert({
       user_id:session.user.id,employment_id:employmentId,employment_type:el("scheduleWorkType").value,
-      effective_month:m+"-01",expected_hours_per_week:h===""?null:Number(h),expected_days_per_week:d===""?null:Number(d)
+      effective_month:m+"-01",expected_hours_per_week:h===""?null:Number(h),expected_days_per_week:d===""?(weekdays.length||null):Number(d),expected_iso_weekdays:weekdays.length?weekdays:null
     });
     if(error){msg.textContent="Could not save: "+error.message;return;}
     msg.textContent="Expected schedule saved as self-declared. Employer verification is still pending.";
