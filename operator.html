@@ -203,17 +203,10 @@ const sb=supabase.createClient("https://xknfxcyezchtypaisieu.supabase.co","sb_pu
 const el=id=>document.getElementById(id), esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));
 const fmt=d=>d?new Date(d).toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"}):"—";
 
-let gateGeneration=0;
 async function gate(){
-  const generation=++gateGeneration;
-  const {data:{session},error:sessionError}=await sb.auth.getSession();
-  if(generation!==gateGeneration)return;
-  if(sessionError||!session?.access_token){showAuth("Please sign in to access operator metrics.");return}
-  const {data:userResult,error:userError}=await sb.auth.getUser();
-  if(generation!==gateGeneration)return;
-  if(userError||!userResult?.user){showAuth("Session could not be validated. Sign in again.");return}
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session){showAuth();return}
   const {data:isAdmin,error}=await sb.rpc("is_you_paid_admin");
-  if(generation!==gateGeneration)return;
   if(error||!isAdmin){showAuth("This account is not authorized for operator access.");return}
   el("authView").classList.add("hidden");el("adminView").classList.remove("hidden");el("signOut").classList.remove("hidden");
   await loadDashboard();
@@ -427,14 +420,7 @@ el("toggleFounderProgram").onclick=async()=>{
   await loadDashboard();
 };
 function setWorkspace(name){const groups={money:["founders","paymentIntegrity","founderPipeline"],verification:["verification","disputes"],members:["members","waitlist"],risk:["risk","privacy","vendorRisk","retention","incidents","sharing"],network:["network","destinations","transmissions"]};const ids=Object.values(groups).flat();document.querySelectorAll(".commandnav a").forEach(a=>a.classList.toggle("active",a.dataset.workspace===name));ids.forEach(id=>{const node=el(id);if(node)node.classList.toggle("workspace-hidden",name!=="overview"&&!(groups[name]||[]).includes(id))});}document.querySelectorAll(".commandnav a").forEach(a=>a.addEventListener("click",e=>{e.preventDefault();setWorkspace(a.dataset.workspace);window.scrollTo({top:document.querySelector(".commandnav").offsetTop,behavior:"smooth"});}));
-let authGatePending=false;
-sb.auth.onAuthStateChange((event)=>{
-  if(event!=="SIGNED_IN"&&event!=="SIGNED_OUT"&&event!=="TOKEN_REFRESHED")return;
-  if(authGatePending)return;
-  authGatePending=true;
-  setTimeout(()=>{authGatePending=false;gate().catch(()=>showAuth("Operator authorization check failed. Refresh and retry."));},50);
-});
-gate().catch(()=>showAuth("Could not check operator access. Refresh and retry."));
+
 </script>
 </body>
 </html>
