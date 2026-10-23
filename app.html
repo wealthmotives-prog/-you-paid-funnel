@@ -375,7 +375,7 @@ el("saveSchedule").onclick=async()=>{
     const employmentId=el("scheduleEmployment").value;
     const m=el("scheduleMonth").value;
     const h=el("scheduleHours").value, d=el("scheduleDays").value;
-    if(!employmentId||!/^\\d{4}-(0[1-9]|1[0-2])$/.test(m)){msg.textContent="Choose an employer and an effective month.";return;}
+    if(!employmentId||!/^\d{4}-(0[1-9]|1[0-2])$/.test(m)){msg.textContent="Choose an employer and an effective month.";return;}
     if(h===""&&d===""){msg.textContent="Provide expected hours or days per week.";return;}
     if((h!==""&&(!Number.isFinite(Number(h))||Number(h)<0||Number(h)>168))||(d!==""&&(!Number.isInteger(Number(d))||Number(d)<0||Number(d)>7))){msg.textContent="Check your hours (0–168) and days (0–7).";return;}
     msg.textContent="Saving schedule…";
