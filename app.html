@@ -36,6 +36,14 @@ input,select,textarea{width:100%;padding:12px 13px;border-radius:11px;border:1px
       <p>Your ledger keeps three things separate: when the work happened, when You Paid verified it, and when you joined You Paid. Historical facts can be verified later when reliable evidence supports them.</p>
     </section>
 
+    <section class="card" id="gettingStarted" aria-labelledby="gettingStartedTitle" style="margin-bottom:18px">
+      <div class="status">YOUR NEXT STEPS</div>
+      <h2 id="gettingStartedTitle" style="margin:12px 0 6px">Build your work record, step by step.</h2>
+      <p class="muted">You choose what to share. Employment details and schedules are self-declared until independently verified.</p>
+      <div id="gettingStartedSteps" class="stack" aria-live="polite"><p class="muted">Checking your progress…</p></div>
+      <p class="muted" style="font-size:12px">Evidence uploads and credit bureau reporting are not currently active. No work history is treated as verified merely because it was submitted.</p>
+    </section>
+
     <div class="grid">
       <div class="card metric"><span class="muted">Member since</span><strong id="memberSince">—</strong></div>
       <div class="card metric"><span class="muted">Employment records</span><strong id="employmentCount">0</strong></div>
@@ -234,6 +242,15 @@ async function refresh(){
   el("accountState").textContent=reservation
    ? "Status: "+reservation.account_state.replaceAll("_"," ")+". Enrollment: "+reservation.enrollment_fee_status.replaceAll("_"," ")+". Subscription: "+reservation.subscription_status.replaceAll("_"," ")+". Credit reporting is not active."
    : "Internal account reservation pending. Credit reporting is not active.";
+  const hasEmployment=(jobs||[]).length>0;
+  const hasSchedule=(schedules||[]).length>0;
+  const steps=[
+    {done:!!reservation,title:"Account reference",desc:reservation?"Your internal account reference is reserved.":"Your internal account reference is pending.",target:"#accountReference"},
+    {done:hasEmployment,title:"Add employment",desc:hasEmployment?"Employment details received. Verification pending.":"Add your employer and start month.",target:"#employerName"},
+    {done:hasSchedule,title:"Set expected schedule",desc:hasSchedule?"Your self-declared expected schedule is saved.":"Tell us your usual hours and workdays.",target:"#scheduleEmployment"}
+  ];
+  const nextIndex=steps.findIndex(step=>!step.done);
+  el("gettingStartedSteps").innerHTML=steps.map((step,i)=>'<div class="notice" style="margin-top:10px"><strong>'+(step.done?'✓':'○')+' '+escapeHtml(step.title)+'</strong><p class="muted" style="margin:6px 0">'+escapeHtml(step.desc)+'</p>'+(i===nextIndex?'<a href="'+step.target+'">Continue this step →</a>':'')+'</div>').join("");
   el("memberSince").textContent = profile ? fmtDate(profile.joined_at) : "Today";
   el("employmentCount").textContent = jobs?.length || 0;
   el("verifiedCycles").textContent = (cycles||[]).filter(x=>x.cycle_status==="verified").length;
