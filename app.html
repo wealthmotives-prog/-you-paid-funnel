@@ -243,7 +243,7 @@ async function refresh(){
   el("employmentList").innerHTML = jobs?.length ? jobs.map(j => `
     <div class="notice">
       <strong>${escapeHtml(j.employer_name)}</strong>${j.role_title ? " · "+escapeHtml(j.role_title) : ""}<br>
-      <span class="muted">Started ${fmtDate(j.employment_start)} · ${escapeHtml(j.employment_status)} · Verification: ${escapeHtml(j.verification_status)}</span>
+      <span class="muted">Started ${j.employment_start_precision==="month"?escapeHtml(fmtMonth(j.employment_start)):fmtDate(j.employment_start)} · ${escapeHtml(j.employment_status)} · Verification: ${escapeHtml(j.verification_status)}</span>
     </div>`).join("") : '<p class="muted">No employment records yet.</p>';
 
   el("eventRows").innerHTML = events?.length ? events.map(v=>{
@@ -348,7 +348,7 @@ el("submitDispute").onclick = async()=>{
 
 el("addEmployment").onclick = async()=>{
   const {data:{session}} = await sb.auth.getSession();
-  if(!session) return;
+  if(!session){el("employmentMsg").textContent="Please sign in again before submitting.";return;}
   const employer = el("employerName").value.trim();
   const startMonth = el("employmentStart").value;
   const address = el("employerAddress").value.trim();
@@ -365,10 +365,11 @@ el("addEmployment").onclick = async()=>{
     employer_phone:phone || null,
     employer_contact_email:contactEmail || null,
     employment_start:start,
+    employment_start_precision:"month",
     employment_status:el("employmentStatus").value
   });
-  if(error){el("employmentMsg").textContent=error.message;return;}
-  el("employmentMsg").textContent="Employment record added. Verification is still pending.";
+  if(error){el("employmentMsg").textContent="We could not save this employment record: "+error.message+" (code: "+(error.code||"unknown")+"). Your entries are still here; please retry after checking the message.";return;}
+  el("employmentMsg").textContent="Employment saved successfully. Verification remains pending.";
   ["employerName","employerAddress","employerPhone","employerContactEmail","employmentStart"].forEach(id=>el(id).value="");
   refresh();
 };
