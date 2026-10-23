@@ -297,7 +297,7 @@ async function loadDashboard(){
 
   el("founderRows").innerHTML=(founderIntents.data||[]).map(x=>`<tr><td>${esc(names.get(x.user_id)||x.user_id.slice(0,8))}</td><td>${esc(founderNames[x.tier_code]||x.tier_code)}</td><td>${(Number(x.amount_cents||0)/100).toFixed(2)}</td><td>${esc(x.status)}</td><td>${fmt(x.selected_at)}</td></tr>`).join("")||'<tr><td colspan="5" class="muted">No founder selections yet.</td></tr>';
 
-  el("pendingRows").innerHTML=(pending.data||[]).map(x=>`<tr><td>${esc(names.get(x.user_id)||x.user_id.slice(0,8))}</td><td>${esc(x.employer_name)}</td><td>${fmt(x.employment_start)}</td><td>${esc(x.employment_status)}</td><td><button onclick="verifyEmployment('${x.id}')">Mark verified</button></td></tr>`).join("")||'<tr><td colspan="5" class="muted">No pending records.</td></tr>';
+  el("pendingRows").innerHTML=(pending.data||[]).map(x=>`<tr><td>${esc(names.get(x.user_id)||x.user_id.slice(0,8))}</td><td>${esc(x.employer_name)}</td><td>${fmt(x.employment_start)}</td><td>${esc(x.employment_status)}</td><td><span class="muted" title="Evidence-backed approval workflow is not yet enabled">Review pending</span></td></tr>`).join("")||'<tr><td colspan="5" class="muted">No pending records.</td></tr>';
 }
 
 function statusLabel(s){return ({pass:"PASS",partial:"PARTIAL",not_implemented:"NOT IMPLEMENTED",not_applicable_yet:"N/A YET",blocked:"BLOCKED"})[s]||s}
@@ -377,17 +377,24 @@ async function verifyEmployment(id){
   });
   await loadDashboard();
 }
-el("signIn").onclick=async()=>{el("authMsg").textContent="Signing in…";const {error}=await sb.auth.signInWithPassword({email:el("email").value.trim(),password:el("password").value});if(error){el("authMsg").textContent=error.message;return}await gate()};
+const authMessage = (message)=>{ el("authMsg").textContent=message; };
+let authBusy=false;
+el("signIn").onclick=async()=>{
+  if(authBusy)return;
+  const email=el("email").value.trim(),password=el("password").value;
+  if(!email||!password){authMessage("Enter both your email address and password.");return}
+  authBusy=true;el("signIn").disabled=true;authMessage("Signing in…");
+  try{
+    const {error}=await sb.auth.signInWithPassword({email,password});
+    if(error){authMessage(error.message);return}
+    authMessage("Signed in. Checking operator permissions…");
+    await gate();
+  }catch(error){
+    authMessage("Sign-in could not finish. Please refresh and try again. "+(error?.message||""));
+  }finally{authBusy=false;el("signIn").disabled=false}
+};
 el("activateAdmin").onclick=async()=>{
-  const email=el("email").value.trim().toLowerCase(),password=el("password").value;
-  if(!email||password.length<8){el("authMsg").textContent="Enter the authorized admin email and a password of at least 8 characters.";return}
-  if(email!=="hello@joinyoupaid.com"){el("authMsg").textContent="That email is not eligible for first-time administrative activation.";return}
-  await sb.auth.signOut();
-  el("authMsg").textContent="Creating the secured admin identity…";
-  const {data,error}=await sb.auth.signUp({email,password,options:{emailRedirectTo:location.origin+"/operator.html"}});
-  if(error){el("authMsg").textContent=error.message;return}
-  if(data.session){await gate();return}
-  el("authMsg").textContent="Activation email sent. Confirm it from hello@joinyoupaid.com, then return here and sign in with the password you just chose.";
+  authMessage("Admin account activation is handled securely by the account owner. If you already have an account, sign in above. If you need operator access, contact the project administrator; public signup cannot grant admin privileges.");
 };
 el("signOut").onclick=async()=>{await sb.auth.signOut();showAuth()};
 el("refresh").onclick=loadDashboard;el("refreshCompliance").onclick=loadDashboard;
@@ -406,7 +413,7 @@ el("toggleFounderProgram").onclick=async()=>{
   await loadDashboard();
 };
 function setWorkspace(name){const groups={money:["founders","paymentIntegrity","founderPipeline"],verification:["verification","disputes"],members:["members","waitlist"],risk:["risk","privacy","vendorRisk","retention","incidents","sharing"],network:["network","destinations","transmissions"]};const ids=Object.values(groups).flat();document.querySelectorAll(".commandnav a").forEach(a=>a.classList.toggle("active",a.dataset.workspace===name));ids.forEach(id=>{const node=el(id);if(node)node.classList.toggle("workspace-hidden",name!=="overview"&&!(groups[name]||[]).includes(id))});}document.querySelectorAll(".commandnav a").forEach(a=>a.addEventListener("click",e=>{e.preventDefault();setWorkspace(a.dataset.workspace);window.scrollTo({top:document.querySelector(".commandnav").offsetTop,behavior:"smooth"});}));
-sb.auth.onAuthStateChange(()=>gate());gate();
+sb.auth.onAuthStateChange(()=>{ setTimeout(()=>{gate().catch(()=>showAuth("Operator authorization check failed. Refresh and retry."));},0); });gate().catch(()=>showAuth("Could not check operator access. Refresh and retry."));
 </script>
 </body>
 </html>
