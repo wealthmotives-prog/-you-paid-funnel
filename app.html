@@ -38,7 +38,7 @@ label,.muted,th,.hero p{color:#435b4f}
 a{color:#135f3b}
 .member-zone-tag{font-size:11px;letter-spacing:1.6px;color:#176e41;font-weight:900;margin-bottom:2px}
 @media(max-width:760px){.top{margin:0 0 9px;align-items:flex-start}.actions{gap:5px}.top .btn{font-size:12px;padding:9px 11px}}
-</style>
+.optional-details{padding:12px;border:1px solid var(--line);border-radius:12px;margin:12px 0}.optional-details summary{cursor:pointer;font-weight:700;color:var(--text);padding:4px} .optional-details[open] summary{margin-bottom:8px}</style>
 </head>
 <body>
 <div class="wrap">
@@ -114,7 +114,7 @@ a{color:#135f3b}
         <label>Employment start (month/year)<input id="employmentStart" type="month" required></label>
         <label>Status<select id="employmentStatus"><option value="active">Active</option><option value="leave">Leave</option><option value="ended">Ended</option></select></label>
       </div>
-      <div class="row"><label>Employer phone (optional)<input id="employerPhone" type="tel" autocomplete="off" placeholder="Company telephone"></label><label>Employer contact email (optional)<input id="employerContactEmail" type="email" autocomplete="off" placeholder="HR or authorized contact email"></label></div><p class="muted" style="font-size:12px">Employer contact details are collected for potential verification and will not trigger messages or calls without a separate authorization.</p><button id="addEmployment">Add employment record</button>
+      <details class="optional-details"><summary>Add employer contact information (optional)</summary><div class="row"><label>Employer phone (optional)<input id="employerPhone" type="tel" autocomplete="off" placeholder="Company telephone"></label><label>Employer contact email (optional)<input id="employerContactEmail" type="email" autocomplete="off" placeholder="HR or authorized contact email"></label></div></details><p class="muted" style="font-size:12px">Employer contact details are collected for potential verification and will not trigger messages or calls without a separate authorization.</p><button id="addEmployment">Add employment record</button>
       <p id="employmentMsg" class="muted"></p>
     </div>
 
