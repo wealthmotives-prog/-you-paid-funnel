@@ -12,6 +12,14 @@ a{color:inherit}.wrap{max-width:1100px;margin:auto;padding:24px}.top{display:fle
 .card{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:22px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.metric strong{display:block;font-size:28px;margin-top:6px}.muted{color:var(--muted)}button,.btn{background:var(--lime);color:#071008;border:0;border-radius:12px;padding:12px 16px;font-weight:800;cursor:pointer}button.secondary{background:var(--panel2);color:var(--text);border:1px solid var(--line)}
 input,select,textarea{width:100%;padding:12px 13px;border-radius:11px;border:1px solid var(--line);background:#0d1116;color:var(--text);margin-top:6px;font:inherit}textarea{min-height:110px;resize:vertical}label{display:block;font-size:13px;color:var(--muted);margin:12px 0}.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}.hidden{display:none!important}.stack{display:grid;gap:14px}.status{display:inline-flex;padding:6px 10px;border-radius:999px;background:#142013;color:var(--lime);font-size:12px;font-weight:800}.notice{padding:12px 14px;border-radius:12px;background:#10161d;border:1px solid var(--line);color:var(--muted);font-size:14px}.danger{color:var(--danger)}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:12px;border-bottom:1px solid var(--line);font-size:14px}th{color:var(--muted);font-weight:600}.hero{padding:40px 0 24px}.hero h1{font-size:clamp(36px,7vw,68px);line-height:.98;letter-spacing:-2px;margin:0 0 14px}.hero p{max-width:720px;font-size:18px;color:var(--muted)}.auth{max-width:520px;margin:30px auto}.actions{display:flex;gap:10px;flex-wrap:wrap}.section-title{display:flex;justify-content:space-between;align-items:center;margin:28px 0 12px}
 @media(max-width:760px){.grid,.row{grid-template-columns:1fr}.wrap{padding:18px}.top{align-items:flex-start}.hero{padding-top:20px}}
+.portal-nav{display:flex;gap:9px;position:sticky;top:0;z-index:10;padding:12px 0;background:var(--bg);overflow-x:auto;scrollbar-width:thin}
+.portal-nav button{background:var(--panel2);border:1px solid var(--line);color:var(--text);white-space:nowrap;min-width:115px}
+.portal-nav button[aria-selected="true"]{background:var(--lime);color:#061008}
+.portal-pane[hidden]{display:none!important}
+.portal-pane{display:grid;gap:16px}
+.portal-pane>.section-title{margin:16px 0 0}
+.portal-pane>.card{margin-top:0!important}
+@media(max-width:760px){.portal-nav button{min-width:102px;padding:11px 12px;font-size:13px}.portal-pane .card{padding:17px}}
 </style>
 </head>
 <body>
@@ -30,6 +38,8 @@ input,select,textarea{width:100%;padding:12px 13px;border-radius:11px;border:1px
   </section>
 
   <main id="memberView" class="hidden">
+    <nav id="portalNavigation" class="portal-nav" aria-label="Member portal sections" style="display:none"></nav>
+    <div id="portalPanels"></div>
     <section class="hero">
       <div class="status">Verified Work Ledger</div>
       <h1>Bring your work history forward.</h1>
@@ -225,7 +235,50 @@ const el = id => document.getElementById(id);
 const fmtMonth = d => d ? new Date(d+"T00:00:00").toLocaleDateString(undefined,{month:"short",year:"numeric"}) : "—";
 const fmtDate = d => d ? new Date(d).toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"}) : "—";
 
+function setupPortalNavigation(){
+ const main=el("memberView"),nav=el("portalNavigation"),host=el("portalPanels");
+ if(nav.dataset.ready==="yes")return;
+ const areas=[["overview","Overview"],["work","Work History"],["verification","Verification"],["account","Account"]];
+ const panes=new Map();
+ for(const [key,name] of areas){
+   const pane=document.createElement("div");pane.id="portal-"+key;pane.className="portal-pane";
+   pane.setAttribute("role","tabpanel");pane.setAttribute("aria-label",name);pane.hidden=key!=="overview";
+   host.append(pane);panes.set(key,pane);
+   const button=document.createElement("button");button.type="button";button.textContent=name;
+   button.setAttribute("role","tab");button.setAttribute("aria-controls",pane.id);
+   button.setAttribute("aria-selected",String(key==="overview"));button.dataset.portal=key;
+   button.addEventListener("click",()=>selectPortalPane(key));nav.append(button);
+ }
+ let active="overview";
+ const headingGroups={
+  "Your You Paid account":"account","Founding status":"account",
+  "Employment":"work","Your records":"work","Expected work schedule":"work",
+  "Evidence intake":"verification","Historical & verification events":"verification",
+  "Reporting status":"verification","Corrections & disputes":"verification",
+  "Privacy & data requests":"account","Data permissions":"account",
+  "Monthly verification":"verification"
+ };
+ const nodes=[...main.children].filter(node=>node!==nav&&node!==host);
+ for(const node of nodes){
+   const h=node.matches?.(".section-title")?node.querySelector("h2")?.textContent?.trim():null;
+   if(h&&headingGroups[h])active=headingGroups[h];
+   if(node.id==="gettingStarted"||node.matches?.(".hero,.grid"))active="overview";
+   if(node.id==="founderCard")active="account";
+   if(node.querySelector?.("#historicalWorkTitle"))active="work";
+   if(node.querySelector?.("#employerConsentTitle"))active="account";
+   panes.get(active).append(node);
+ }
+ nav.style.display="flex";nav.dataset.ready="yes";
+}
+function selectPortalPane(key){
+ const nav=el("portalNavigation");
+ for(const b of nav.querySelectorAll("[data-portal]"))b.setAttribute("aria-selected",String(b.dataset.portal===key));
+ for(const pane of el("portalPanels").children)pane.hidden=pane.id!=="portal-"+key;
+ nav.scrollIntoView({block:"start",behavior:"smooth"});
+}
+
 async function refresh(){
+  setupPortalNavigation();
   const {data:{session}} = await sb.auth.getSession();
   const logged = !!session;
   el("authView").classList.toggle("hidden", logged);
