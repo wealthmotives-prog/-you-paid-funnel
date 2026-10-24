@@ -45,6 +45,15 @@ Deno.serve(async (req:Request)=>{
  if(!url||!key||!salt||salt.length<32)return reply(503,{error:"intake_not_configured"});
  const sb=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
  // Token-specific throttle, avoiding reliance on forgeable client IP headers.
+ // Second independent, coarse server-wide limit catches rotated guessed tokens.
+ // It is deliberately NOT IP-based: untrusted X-Forwarded-For is attacker-controlled.
+ // This global budget can be exhausted by an attacker, so edge WAF controls are
+ // still required before enabling intake.
+ const globalBucket=await digest("workverify:global:"+salt);
+ const {data:globalAllowed,error:globalGateError}=await sb.rpc("yp_workverify_abuse_gate",{
+  p_bucket_hash:globalBucket,p_max_hits:300,p_window_seconds:3600
+ });
+ if(globalGateError||globalAllowed!==true)return reply(429,{error:"request_unavailable"});
  const bucket=await digest("workverify:"+salt+":"+token);
  const {data:allowed,error:gateError}=await sb.rpc("yp_employer_response_rate_gate",{
   p_bucket_hash:bucket,p_max_hits:8,p_window_seconds:3600
