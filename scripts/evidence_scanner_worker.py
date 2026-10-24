@@ -111,6 +111,10 @@ def main():
             raise RuntimeError("ClamAV unavailable")
     except Exception:
         sys.exit("Scanner unavailable; refusing to claim inspection jobs")
+    # Recover expired leases before claiming available jobs. Recovery is service-role only.
+    recovered = api("/rest/v1/rpc/recover_expired_evidence_inspections",
+                    method="POST", data={"p_limit": 20, "p_max_attempts": 3}) or []
+    print("Recovered or exhausted inspection leases: " + str(len(recovered)))
     jobs = api("/rest/v1/rpc/claim_evidence_inspection_jobs", method="POST", data={"p_limit": LIMIT}) or []
     for job in jobs:
         inspect(job)
