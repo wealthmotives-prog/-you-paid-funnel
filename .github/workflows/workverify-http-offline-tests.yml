@@ -1,0 +1,25 @@
+name: WorkVerify security smoke unit checks
+on:
+  push:
+    paths:
+      - 'tests/workverify_http_security_smoke.py'
+      - 'tests/test_workverify_http_smoke_offline.py'
+      - '.github/workflows/workverify-http-offline-tests.yml'
+  pull_request:
+    paths:
+      - 'tests/workverify_http_security_smoke.py'
+      - 'tests/test_workverify_http_smoke_offline.py'
+      - '.github/workflows/workverify-http-offline-tests.yml'
+permissions:
+  contents: read
+jobs:
+  offline-smoke-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify deterministic offline security assertions
+        run: python -m unittest discover -s tests -p 'test_workverify_http_smoke_offline.py' -v
