@@ -182,6 +182,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:11px;border-bottom:1px s
     </div>
 
 <div class="card scroll" style="margin-top:14px"><h3>Employer responses · Digital &amp; Paper</h3><p class="muted">Responses are unreviewed until an operator records a decision. Accepting a response does not automatically verify employment or alter WorkScore.</p><p id="employerReviewMessage" class="muted">Checking review queue…</p><table><thead><tr><th>Employer</th><th>Channel</th><th>Employment / Dates / Schedule</th><th>Status</th><th>Review</th></tr></thead><tbody id="employerReviewRows"></tbody></table></div>
+<div class="card scroll" style="margin-top:14px"><h3>Historical work · Employer request links</h3><p class="muted">Operator-only association of self-declared periods with employer verification requests. Linking is not confirmation and does not create verified attendance or credit history.</p><p id="historyLinkMessage" class="muted">Loading history candidates…</p><table><thead><tr><th>Employer</th><th>Declared period</th><th>Link state</th><th>Action</th></tr></thead><tbody id="historyLinkRows"></tbody></table></div>
     <div class="section" id="waitlist">
       <h2>Recent waitlist leads</h2>
       <div class="card scroll">
@@ -250,7 +251,35 @@ async function loadEmployerReviewQueue(){
  }
 }
 
+async function loadHistoryLinks(){
+ const msg=el("historyLinkMessage"),tbody=el("historyLinkRows");
+ if(!msg||!tbody)return;tbody.replaceChildren();
+ const {data,error}=await sb.rpc("yp_admin_history_link_candidates",{p_limit:50});
+ if(error){msg.textContent="History links unavailable: "+error.message;return;}
+ msg.textContent=(data?.length||0)+" eligible claim/request pair(s).";
+ for(const rec of data||[]){
+  const tr=document.createElement("tr");const cell=(value)=>{const td=document.createElement("td");td.textContent=String(value??"—");tr.append(td);return td;};
+  cell(rec.employer_name);cell(rec.period_start+" — "+rec.period_end);cell(rec.link_status);
+  const td=cell("");
+  if(rec.link_status==="unlinked"){
+   const btn=document.createElement("button");btn.type="button";btn.textContent="Link for review";
+   btn.onclick=async()=>{
+    if(!confirm("Associate this declaration with the existing employer request? This does NOT establish verification or send an invitation."))return;
+    btn.disabled=true;
+    const {error:writeError}=await sb.rpc("yp_admin_link_history_employer",{
+      p_claim_id:rec.claim_id,p_employer_request_id:rec.request_id,p_period_start:rec.period_start,p_period_end:rec.period_end
+    });
+    if(writeError){alert("Link was not created: "+writeError.message);btn.disabled=false;return;}
+    await loadHistoryLinks();
+   };
+   td.append(btn);
+  }
+  tbody.append(tr);
+ }
+}
+
 async function loadDashboard(){
+  loadHistoryLinks();
   loadEmployerReviewQueue();
   const [{data:snapshot,error:snapshotError},{data:integrityHistory},{data:integrity}]=await Promise.all([sb.rpc("admin_command_center_snapshot"),sb.rpc("admin_payment_integrity_history",{p_limit:24}),sb.rpc("admin_latest_integrity")]);
   const [leads,members,pending,cycles,founderIntents,founderMemberships,founderContributions,founderProgram,checkoutSessions,termAcceptances,disputes,providers,destinations,transmissions,compliance,privacyRequests,vendorRisk,retention,incidents,sharingConsents] = await Promise.all([
