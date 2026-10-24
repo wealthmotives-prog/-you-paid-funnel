@@ -79,3 +79,12 @@ class IsolatedInspectionTests(TestCase):
             with self.assertRaises(SystemExit):
                 worker.main()
             api.assert_not_called()
+
+    def test_download_error_preserves_lease_for_failure(self):
+        with patch.object(worker, "BASE", "https://example.test"), \
+             patch.object(worker, "KEY", "synthetic-key"), \
+             patch.object(worker.urllib.request, "urlopen", side_effect=OSError("offline")), \
+             patch.object(worker, "verdict") as verdict:
+            worker.inspect(dict(self.JOB))
+            verdict.assert_called_once_with(
+                "test-job", "failed", lease_token="synthetic-lease", code="inspection_error")
