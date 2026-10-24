@@ -51,18 +51,18 @@ def main():
             p.error("Concurrent test needs --synthetic-allow, test JWT, synthetic token")
         if len(args.token)!=64 or any(c not in "0123456789abcdef" for c in args.token):
             p.error("Token must be a 64-character lowercase hex synthetic token")
-        if "employer-confirmation-staging" not in args.url:
-            p.error("Only isolated employer-confirmation-staging endpoints allowed")
-        payload={"token":args.token,"employment":"yes","dates":"unknown","schedule":"unknown","role":"Synthetic Tester"}
+        if "workverify-concurrency-lab" not in args.url:
+            p.error("Concurrent mode requires isolated workverify-concurrency-lab")
+        payload={"token":args.token}
         with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
             results=list(pool.map(lambda _:send(args.url,payload,args.jwt),range(2)))
         statuses=sorted([r[0] for r in results])
-        assert statuses==[202,400], f"Expected one success, one replay rejection; got {statuses}"
+        assert statuses==[202,409], f"Expected one acceptance and one duplicate refusal; got {statuses}"
         for status,body,headers in results:
             assert "no-store" in headers.get("Cache-Control","")
             if status==202:
                 response=json.loads(body)
                 assert response.get("employment_verified") is False
-                assert response.get("status")=="pending_review"
+                assert response.get("result")=="synthetic_accepted"
         print("PASS: exactly one synthetic response accepted, second rejected",statuses)
 if __name__=="__main__": main()
