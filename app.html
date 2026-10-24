@@ -38,7 +38,7 @@ label,.muted,th,.hero p{color:#435b4f}
 a{color:#135f3b}
 .member-zone-tag{font-size:11px;letter-spacing:1.6px;color:#176e41;font-weight:900;margin-bottom:2px}
 @media(max-width:760px){.top{margin:0 0 9px;align-items:flex-start}.actions{gap:5px}.top .btn{font-size:12px;padding:9px 11px}}
-.optional-details{padding:12px;border:1px solid var(--line);border-radius:12px;margin:12px 0}.optional-details summary{cursor:pointer;font-weight:700;color:var(--text);padding:4px} .optional-details[open] summary{margin-bottom:8px}</style>
+.optional-details{padding:12px;border:1px solid var(--line);border-radius:12px;margin:12px 0}.optional-details summary{cursor:pointer;font-weight:700;color:var(--text);padding:4px} .optional-details[open] summary{margin-bottom:8px}.progress-track{height:9px;background:var(--panel2);border-radius:99px;overflow:hidden;margin:9px 0 15px}.progress-track>div{height:100%;background:var(--lime);width:0;transition:width .2s}@media(prefers-reduced-motion:reduce){.progress-track>div{transition:none}}</style>
 </head>
 <body>
 <div class="wrap">
@@ -70,7 +70,7 @@ a{color:#135f3b}
       <div class="status">YOUR NEXT STEPS</div>
       <h2 id="gettingStartedTitle" style="margin:12px 0 6px">Build your work record, step by step.</h2>
       <p class="muted">You choose what to share. Employment details and schedules are self-declared until independently verified.</p>
-      <div id="gettingStartedSteps" class="stack" aria-live="polite"><p class="muted">Checking your progress…</p></div>
+      <p id="onboardingProgress" class="muted" aria-live="polite">Calculating your progress…</p><div class="progress-track" aria-hidden="true"><div id="onboardingProgressBar"></div></div><div id="gettingStartedSteps" class="stack" aria-live="polite"><p class="muted">Checking your progress…</p></div>
       <p class="muted" style="font-size:12px">Evidence uploads and credit bureau reporting are not currently active. No work history is treated as verified merely because it was submitted.</p>
     </section>
 
@@ -384,6 +384,9 @@ async function refresh(){
     {done:hasEmployment,title:"Add employment",desc:hasEmployment?"Employment details received. Verification pending.":"Add your employer and start month.",target:"#employerName"},
     {done:hasSchedule,title:"Set expected schedule",desc:hasSchedule?"Your self-declared expected schedule is saved.":"Tell us your usual hours and workdays.",target:"#scheduleEmployment"}
   ];
+  const completed=steps.filter(step=>step.done).length;
+  el("onboardingProgress").textContent=completed+" of "+steps.length+" foundation steps completed";
+  el("onboardingProgressBar").style.width=Math.round(completed/steps.length*100)+"%";
   const nextIndex=steps.findIndex(step=>!step.done);
   el("gettingStartedSteps").innerHTML=steps.map((step,i)=>'<div class="notice" style="margin-top:10px"><strong>'+(step.done?'✓':'○')+' '+escapeHtml(step.title)+'</strong><p class="muted" style="margin:6px 0">'+escapeHtml(step.desc)+'</p>'+(i===nextIndex?'<a href="'+step.target+'">Continue this step →</a>':'')+'</div>').join("");
   el("memberSince").textContent = profile ? fmtDate(profile.joined_at) : "Today";
