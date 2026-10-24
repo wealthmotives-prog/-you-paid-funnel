@@ -22,8 +22,10 @@ SCANNER = os.environ.get("YP_CLAMSCAN_BIN", "clamscan")
 TIMEOUT = 90
 
 
-def api(path, *, method="GET", data=None, content_type="application/json"):
+def api(path, *, method="GET", data=None, content_type="application/json", return_rows=False):
     headers = {"apikey": KEY, "Authorization": "Bearer " + KEY}
+    if return_rows:
+        headers["Prefer"] = "return=representation"
     body = None if data is None else json.dumps(data).encode()
     if body is not None:
         headers["Content-Type"] = content_type
@@ -34,15 +36,23 @@ def api(path, *, method="GET", data=None, content_type="application/json"):
 
 
 def verdict(job_id, state, *, digest=None, code=None):
+    """Only acknowledge a verdict if one still-scanning job was updated."""
+    if state not in ("clean", "rejected", "failed"):
+        raise ValueError("Unsupported terminal inspection state")
     patch = {"state": state}
     if state == "clean":
+        if not digest or len(digest) != 64:
+            raise ValueError("Clean verdict requires SHA256")
         patch.update({"actual_sha256": digest, "scanner_name": "clamav-clamscan",
                       "scanned_at": __import__("datetime").datetime.now(
                           __import__("datetime").timezone.utc).isoformat()})
     else:
-        patch["failure_code"] = code
-    api("/rest/v1/evidence_inspection_jobs?id=eq." + urllib.parse.quote(job_id),
-        method="PATCH", data=patch)
+        patch["failure_code"] = code or "inspection_error"
+    response = api("/rest/v1/evidence_inspection_jobs?id=eq." +
+                   urllib.parse.quote(job_id, safe="") + "&state=eq.scanning",
+                   method="PATCH", data=patch, return_rows=True)
+    if not isinstance(response, list) or len(response) != 1 or response[0].get("state") != state:
+        raise RuntimeError("Inspection verdict was not persisted against a scanning job")
 
 
 def inspect(job):
