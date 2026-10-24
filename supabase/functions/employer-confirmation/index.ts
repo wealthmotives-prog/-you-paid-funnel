@@ -22,8 +22,9 @@ Deno.serve(async (req:Request)=>{
   return reply(415,{error:"application_json_required"});
  const size=Number(req.headers.get("content-length")||0);
  if(!Number.isFinite(size)||size>2048)return reply(413,{error:"request_too_large"});
- const raw=await req.text();
- if(raw.length>2048)return reply(413,{error:"request_too_large"});
+ let raw:string;
+ try{raw=await req.text();}catch{return reply(400,{error:"invalid_request_body"});}
+ if(new TextEncoder().encode(raw).byteLength>2048)return reply(413,{error:"request_too_large"});
  let payload:Record<string,unknown>;
  try{
   const parsed=JSON.parse(raw);
