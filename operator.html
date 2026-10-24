@@ -181,6 +181,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:11px;border-bottom:1px s
       </div>
     </div>
 
+<div class="card scroll" style="margin-top:14px"><h3>Employer responses · Digital &amp; Paper</h3><p class="muted">Responses are unreviewed until an operator records a decision. Accepting a response does not automatically verify employment or alter WorkScore.</p><p id="employerReviewMessage" class="muted">Checking review queue…</p><table><thead><tr><th>Employer</th><th>Channel</th><th>Employment / Dates / Schedule</th><th>Status</th><th>Review</th></tr></thead><tbody id="employerReviewRows"></tbody></table></div>
     <div class="section" id="waitlist">
       <h2>Recent waitlist leads</h2>
       <div class="card scroll">
@@ -214,7 +215,43 @@ async function gate(){
 }
 function showAuth(msg=""){el("authView").classList.remove("hidden");el("adminView").classList.add("hidden");el("signOut").classList.add("hidden");if(msg)el("authMsg").textContent=msg}
 
+async function loadEmployerReviewQueue(){
+ const msg=el("employerReviewMessage"),body=el("employerReviewRows");if(!msg||!body)return;
+ body.replaceChildren();
+ const {data,error}=await sb.rpc("yp_admin_employer_review_queue",{p_limit:50});
+ if(error){msg.textContent="Review queue unavailable: "+error.message;return;}
+ msg.textContent=(data?.length||0)+" employer response(s).";
+ for(const rec of data||[]){
+  const tr=document.createElement("tr");
+  const add=(value)=>{const td=document.createElement("td");td.textContent=String(value??"—");tr.append(td);return td;};
+  add(rec.employer_name);add(rec.response_channel);
+  add([rec.employment_confirmed,rec.dates_confirmed,rec.schedule_confirmed].join(" / "));
+  add(rec.review_status);
+  const td=document.createElement("td");
+  if(rec.review_status==="unreviewed"){
+   const select=document.createElement("select");
+   for(const [value,title] of [["needs_more_information","Needs more information"],["accepted_as_employer_response","Accept response (not employment verification)"],["rejected_unreliable","Reject unreliable response"]]){
+    const o=document.createElement("option");o.value=value;o.textContent=title;select.append(o);
+   }
+   const button=document.createElement("button");button.textContent="Record decision";button.type="button";
+   button.onclick=async()=>{
+    const reason=prompt("Document your evidence-based rationale (minimum 12 characters).");
+    if(reason===null)return;
+    if(reason.trim().length<12){alert("A detailed rationale is required.");return;}
+    if(!confirm("Record this one-time review decision? It will not automatically verify employment."))return;
+    button.disabled=true;
+    const {error:writeError}=await sb.rpc("yp_admin_decide_employer_response",{p_channel:rec.response_channel,p_response_id:rec.response_id,p_decision:select.value,p_reason:reason.trim()});
+    if(writeError){alert("Unable to record: "+writeError.message);button.disabled=false;return;}
+    await loadEmployerReviewQueue();
+   };
+   td.append(select,button);
+  }else td.textContent="Decision recorded";
+  tr.append(td);body.append(tr);
+ }
+}
+
 async function loadDashboard(){
+  loadEmployerReviewQueue();
   const [{data:snapshot,error:snapshotError},{data:integrityHistory},{data:integrity}]=await Promise.all([sb.rpc("admin_command_center_snapshot"),sb.rpc("admin_payment_integrity_history",{p_limit:24}),sb.rpc("admin_latest_integrity")]);
   const [leads,members,pending,cycles,founderIntents,founderMemberships,founderContributions,founderProgram,checkoutSessions,termAcceptances,disputes,providers,destinations,transmissions,compliance,privacyRequests,vendorRisk,retention,incidents,sharingConsents] = await Promise.all([
     sb.from("waitlist_leads").select("first_name,email,work_type,referral_intent,created_at").order("created_at",{ascending:false}).limit(25),
