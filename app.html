@@ -201,6 +201,11 @@ input,select,textarea{width:100%;padding:12px 13px;border-radius:11px;border:1px
         <table><thead><tr><th>Month</th><th>Workdays</th><th>Clock-ins</th><th>Status</th></tr></thead><tbody id="cycleRows"><tr><td colspan="4" class="muted">No verified cycles yet.</td></tr></tbody></table>
       </div>
     </div>
+<section class="card" style="margin-top:20px" aria-labelledby="historicalWorkTitle"><h2 id="historicalWorkTitle">Historical Work History · Up to 24 Months</h2><p class="muted">Declare a genuine past period of employment once. This is a self-declared record, not 24 verified attendance records or a credit tradeline. Past periods can be reviewed later with employer evidence.</p>
+<div class="row"><label>Employer<select id="historyEmployer"><option value="">Choose an existing employment record</option></select></label><label>Usual weekly hours (optional)<input id="historyWeeklyHours" type="number" min="0" max="100" step="0.25" placeholder="40"></label></div>
+<div class="row"><label>Period begins<input id="historyStart" type="date"></label><label>Period ends<input id="historyEnd" type="date"></label></div>
+<label style="display:flex;align-items:center;gap:8px"><input id="historyAttest" type="checkbox"> I confirm this describes my actual past employment to the best of my knowledge.</label>
+<p><button type="button" id="historySave">Save historical declaration</button></p><p class="muted" role="status" aria-live="polite" id="historyMessage">No historical declaration submitted.</p><div id="historyRecords" class="muted"></div></section>
 <section class="card" style="margin-top:20px" aria-labelledby="employerConsentTitle">
 <h2 id="employerConsentTitle">Employer verification permissions</h2>
 <p class="muted">Review requests you authorized and withdraw future employer verification access. Withdrawing prevents new invitations and revokes unused links. It cannot undo a response already submitted.</p>
@@ -230,6 +235,7 @@ async function refresh(){
 
   const uid = session.user.id;
   refreshEmployerConsent(uid);
+  refreshHistoricalWork(uid);
   const [{data:schedules},{data:reservation},{data:profile},{data:jobs},{data:cycles},{data:founderIntent},{data:founderMembership},{data:events},{data:disputes},{data:transmissions},{data:privacyRequests},{data:sharingConsents}] = await Promise.all([
     sb.from("work_schedule_declarations").select("id,employment_id,employment_type,expected_hours_per_week,expected_days_per_week,expected_iso_weekdays,effective_month,evidence_status,created_at").eq("user_id",uid).order("effective_month",{ascending:false}),
     sb.from("member_account_reservations").select("public_reference,account_state,enrollment_fee_status,subscription_status").eq("user_id",uid).maybeSingle(),
@@ -494,6 +500,41 @@ el("evidenceUpload").onclick=async()=>{
   refresh();
 };
 
+
+
+// Historical work periods are solely member declarations; never auto-verified or furnished.
+async function refreshHistoricalWork(uid){
+ const select=el("historyEmployer"),out=el("historyRecords");
+ const current=select.value;
+ const [{data:jobs,error:jobError},{data:claims,error:claimError}]=await Promise.all([
+  sb.from("employment_records").select("id,employer_name").eq("user_id",uid).order("employment_start",{ascending:false}),
+  sb.from("work_history_period_claims").select("id,employment_id,period_start,period_end,normal_hours_per_week,evidence_status,declared_at").eq("user_id",uid).order("declared_at",{ascending:false}).limit(25)
+ ]);
+ if(jobError||claimError){out.textContent="Historical records unavailable: "+(jobError||claimError).message;return;}
+ select.replaceChildren();const blank=document.createElement("option");blank.value="";blank.textContent="Choose an existing employment record";select.append(blank);
+ const names=new Map();
+ for(const job of jobs||[]){names.set(job.id,job.employer_name);const opt=document.createElement("option");opt.value=job.id;opt.textContent=job.employer_name;select.append(opt);}
+ if(names.has(current))select.value=current;
+ out.replaceChildren();
+ if(!claims?.length){out.textContent="No historical work periods declared yet.";return;}
+ const head=document.createElement("strong");head.textContent="Saved declarations (not verified)";out.append(head);
+ for(const c of claims){const p=document.createElement("p");p.textContent=(names.get(c.employment_id)||"Employer")+" · "+c.period_start+" to "+c.period_end+" · "+(c.normal_hours_per_week??"Unknown")+" weekly hours · Self-declared, unverified";out.append(p);}
+}
+el("historySave").onclick=async()=>{
+ const msg=el("historyMessage"),employmentId=el("historyEmployer").value,start=el("historyStart").value,end=el("historyEnd").value,hours=el("historyWeeklyHours").value;
+ if(!employmentId||!start||!end||!el("historyAttest").checked){msg.textContent="Select an employer and dates, then confirm your declaration.";return;}
+ const startDate=new Date(start+"T12:00:00Z"),endDate=new Date(end+"T12:00:00Z"),today=new Date();
+ const days=Math.round((endDate-startDate)/86400000);
+ if(!Number.isFinite(days)||days<0||days>744||endDate>today){msg.textContent="Enter a past period of up to approximately 24 months, ending no later than today.";return;}
+ if(hours!==""&&(!Number.isFinite(Number(hours))||Number(hours)<0||Number(hours)>100)){msg.textContent="Weekly hours must be between 0 and 100.";return;}
+ msg.textContent="Saving historical declaration…";
+ const {data:{user}}=await sb.auth.getUser();if(!user){msg.textContent="Sign in to save your declaration.";return;}
+ const {error}=await sb.from("work_history_period_claims").insert({user_id:user.id,employment_id:employmentId,period_start:start,period_end:end,normal_hours_per_week:hours===""?null:Number(hours)});
+ if(error){msg.textContent="Unable to save historical declaration: "+error.message;return;}
+ msg.textContent="Historical work period saved as self-declared and unverified. No bureau reporting occurred.";
+ el("historyAttest").checked=false;
+ await refreshHistoricalWork(user.id);
+};
 
 // Member-owned employer verification authorization and withdrawal.
 // Member clients never receive invitation tokens or service-role credentials.
