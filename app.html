@@ -46,6 +46,8 @@ input,select,textarea{width:100%;padding:12px 13px;border-radius:11px;border:1px
       <p>Your ledger keeps three things separate: when the work happened, when You Paid verified it, and when you joined You Paid. Historical facts can be verified later when reliable evidence supports them.</p>
     </section>
 
+<section class="card" id="memberFocus" style="margin-bottom:14px"><div class="status">YOUR NEXT ACTION</div><h2 id="memberFocusTitle">Preparing your next step…</h2><p class="muted" id="memberFocusDetail">Your next recommended action will appear here.</p><button id="memberFocusAction" type="button">Go to next step</button></section>
+<section class="card" id="memberTimeline" style="margin-bottom:14px"><h2>Your work-history timeline</h2><p class="muted">Declaration and verification are different. These entries do not constitute payment history.</p><div id="memberTimelineRows" class="stack" aria-live="polite"><p class="muted">Loading records…</p></div></section>
     <section class="card" id="gettingStarted" aria-labelledby="gettingStartedTitle" style="margin-bottom:18px">
       <div class="status">YOUR NEXT STEPS</div>
       <h2 id="gettingStartedTitle" style="margin:12px 0 6px">Build your work record, step by step.</h2>
@@ -288,6 +290,43 @@ function selectPortalPane(key){
  nav.scrollIntoView({block:"start",behavior:"smooth"});
 }
 
+async function refreshMemberFocus(uid){
+ const [{data:jobs},{data:schedules},{data:claims}]=await Promise.all([
+  sb.from("employment_records").select("id,employer_name,employment_start,verification_status").eq("user_id",uid).order("employment_start",{ascending:false}).limit(30),
+  sb.from("work_schedule_declarations").select("id").eq("user_id",uid).limit(1),
+  sb.from("work_history_period_claims").select("id,employment_id,period_start,period_end,evidence_status").eq("user_id",uid).order("period_start",{ascending:false}).limit(30)
+ ]);
+ const steps=[
+  {done:(jobs||[]).length>0,title:"Add your employer",desc:"Start by entering your employer and employment start month.",target:"employerName"},
+  {done:(schedules||[]).length>0,title:"Set your usual schedule",desc:"Tell us the days and hours you normally expect to work.",target:"scheduleEmployment"},
+  {done:(claims||[]).length>0,title:"Add past work history",desc:"Optionally add a genuine historical period of up to 24 months.",target:"historyEmployer"}
+ ];
+ const next=steps.find(x=>!x.done);
+ el("memberFocusTitle").textContent=next?next.title:"Your foundation is in place";
+ el("memberFocusDetail").textContent=next?next.desc:"Your saved work declarations remain unverified until evidence supports specific facts. You can review or correct records in the Verification section.";
+ el("memberFocusAction").textContent=next?"Open this step":"View verification status";
+ el("memberFocusAction").onclick=()=>{
+  const dest=document.getElementById(next?.target||"cycleRows");
+  const panel=dest?.closest(".portal-pane");
+  if(panel)selectPortalPane(panel.id.replace("portal-",""));
+  dest?.scrollIntoView({behavior:"smooth",block:"center"});
+  if(next&&["INPUT","SELECT"].includes(dest?.tagName))dest.focus({preventScroll:true});
+ };
+ const timeline=el("memberTimelineRows");timeline.replaceChildren();
+ if(!(jobs||[]).length && !(claims||[]).length){timeline.textContent="No work records yet. Add an employer to begin.";return;}
+ for(const job of (jobs||[]).slice(0,5)){
+  const p=document.createElement("div");p.className="notice";
+  p.textContent=job.employer_name+" · Since "+job.employment_start+" · "+(job.verification_status==="verified"?"Recorded status: verified":"Employment record: not independently verified");
+  timeline.append(p);
+ }
+ for(const claim of (claims||[]).slice(0,5)){
+  const job=(jobs||[]).find(j=>j.id===claim.employment_id);
+  const p=document.createElement("div");p.className="notice";
+  p.textContent=(job?.employer_name||"Historical employment")+" · "+claim.period_start+" to "+claim.period_end+" · Self-declared; unverified";
+  timeline.append(p);
+ }
+}
+
 async function refresh(){
   setupPortalNavigation();
   const {data:{session}} = await sb.auth.getSession();
@@ -299,6 +338,7 @@ async function refresh(){
 
   const uid = session.user.id;
   refreshEmployerConsent(uid);
+  refreshMemberFocus(uid);
   refreshHistoricalWork(uid);
   const [{data:schedules},{data:reservation},{data:profile},{data:jobs},{data:cycles},{data:founderIntent},{data:founderMembership},{data:events},{data:disputes},{data:transmissions},{data:privacyRequests},{data:sharingConsents}] = await Promise.all([
     sb.from("work_schedule_declarations").select("id,employment_id,employment_type,expected_hours_per_week,expected_days_per_week,expected_iso_weekdays,effective_month,evidence_status,created_at").eq("user_id",uid).order("effective_month",{ascending:false}),
