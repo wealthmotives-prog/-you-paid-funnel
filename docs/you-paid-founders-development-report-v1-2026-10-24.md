@@ -54,3 +54,14 @@ You Paid has a deployed public funnel and member/operator web application, plus 
 - Obtain legal/privacy/compliance assessment before making any financial reporting or credit-impact representation.
 
 **Launch gate remains closed. Break/review is appropriate now because evidence and remaining risks are documented, not because launch-readiness is established.**
+
+
+## Three-task execution follow-up — October 24, 2026
+
+**Task 1 — upgraded CI:** checked commit 067e20c via GitHub workflow-run lookup; no matching run returned (lookup is limited to PR-triggered runs). Vercel deploy status on later founder-report commit is success. The earlier job 120798638966 in run 40069157441 remains the last independently verified successful Actions run, with five offline tests passed on pre-upgrade action versions. The upgraded actions are **not yet independently verified by an actual job result**.
+
+**Task 2 — genuine concurrency:** Supabase lists `workverify-concurrency-lab` and `employer-confirmation-staging` ACTIVE with JWT verification. Fixture count is **0**. Cannot honestly execute the two-request acceptance/rejection test without an authorized short-lived fixture and permitted network test credentials. Fixture insertion previously blocked by connection safeguards. No fixture was seeded; no verification gate loosened.
+
+**Task 3 — development inventory:** rechecked six deployed Supabase functions: capture-funnel; create-founder-checkout; stripe-founder-webhook; evidence-preflight; employer-confirmation-staging; workverify-concurrency-lab. The three-task follow-up is integrated here, with explicit verification limitations and no assertion of launch-readiness.
+
+**Required to fully close tasks 1 and 2:** new completed workflow **run URL/ID** for upgraded CI; approved isolated environment able to seed synthetic fixture and make concurrent HTTPS calls with test-only credentials. Do not expose secrets in chat. These are validation dependencies, not product-design decisions.
