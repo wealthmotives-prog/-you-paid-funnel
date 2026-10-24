@@ -44,6 +44,16 @@ class SmokeRunnerTests(unittest.TestCase):
   with self.assertRaises(AssertionError):
    self.invoke(["--url",HOST+"workverify-concurrency-lab","--mode","concurrent","--jwt","fictional","--token","a"*64,"--synthetic-allow"],[response,response])
 
+ def test_redirects_never_forward_test_credentials(self):
+  import urllib.error
+  request=__import__("urllib.request",fromlist=["Request"]).Request(
+      HOST+"workverify-concurrency-lab",
+      headers={"Authorization":"Bearer fictional"})
+  response=__import__("email.message",fromlist=["Message"]).Message()
+  blocked=module.NoRedirect().redirect_request(
+      request,None,302,"Found",response,"https://evil.example/receive")
+  self.assertIsNone(blocked)
+
  def test_deceptive_destination_rejected(self):
   candidates=[
    "https://evil.example/functions/v1/workverify-concurrency-lab",
