@@ -7,13 +7,19 @@ a separate synthetic TEST endpoint and invitation token; never use real employer
 import argparse, concurrent.futures, json, os, urllib.request, urllib.error
 from urllib.parse import urlparse
 
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+HTTP=urllib.request.build_opener(NoRedirect)
+
 def send(url, body=None, jwt=None):
     raw = None if body is None else json.dumps(body).encode()
     headers={"Content-Type":"application/json","Accept":"application/json"}
     if jwt: headers["Authorization"]="Bearer "+jwt
     req=urllib.request.Request(url, data=raw, headers=headers, method="POST")
     try:
-        with urllib.request.urlopen(req, timeout=12) as res:
+        with HTTP.open(req, timeout=12) as res:
             return res.status, res.read(8192).decode(), dict(res.headers)
     except urllib.error.HTTPError as err:
         return err.code,err.read(8192).decode(),dict(err.headers)
