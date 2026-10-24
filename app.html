@@ -201,6 +201,12 @@ input,select,textarea{width:100%;padding:12px 13px;border-radius:11px;border:1px
         <table><thead><tr><th>Month</th><th>Workdays</th><th>Clock-ins</th><th>Status</th></tr></thead><tbody id="cycleRows"><tr><td colspan="4" class="muted">No verified cycles yet.</td></tr></tbody></table>
       </div>
     </div>
+<section class="card" style="margin-top:20px" aria-labelledby="employerConsentTitle">
+<h2 id="employerConsentTitle">Employer verification permissions</h2>
+<p class="muted">Review requests you authorized and withdraw future employer verification access. Withdrawing prevents new invitations and revokes unused links. It cannot undo a response already submitted.</p>
+<div id="employerConsentStatus" class="muted" role="status" aria-live="polite">Loading verification permissions…</div>
+<div id="employerConsentList" style="display:grid;gap:12px;margin-top:12px"></div>
+</section>
   </main>
 </div>
 
@@ -223,6 +229,7 @@ async function refresh(){
   if(!logged) return;
 
   const uid = session.user.id;
+  refreshEmployerConsent(uid);
   const [{data:schedules},{data:reservation},{data:profile},{data:jobs},{data:cycles},{data:founderIntent},{data:founderMembership},{data:events},{data:disputes},{data:transmissions},{data:privacyRequests},{data:sharingConsents}] = await Promise.all([
     sb.from("work_schedule_declarations").select("id,employment_id,employment_type,expected_hours_per_week,expected_days_per_week,expected_iso_weekdays,effective_month,evidence_status,created_at").eq("user_id",uid).order("effective_month",{ascending:false}),
     sb.from("member_account_reservations").select("public_reference,account_state,enrollment_fee_status,subscription_status").eq("user_id",uid).maybeSingle(),
@@ -486,6 +493,39 @@ el("evidenceUpload").onclick=async()=>{
   el("evidenceFile").value="";
   refresh();
 };
+
+
+// Member-owned employer verification authorization and withdrawal.
+// Member clients never receive invitation tokens or service-role credentials.
+async function refreshEmployerConsent(uid){
+  const list=el("employerConsentList"),status=el("employerConsentStatus");
+  list.replaceChildren();
+  const {data,error}=await sb.from("employer_verification_requests")
+    .select("id,employer_name,created_at,member_consent_revoked_at,facts_check,outreach_state")
+    .eq("member_id",uid).order("created_at",{ascending:false}).limit(25);
+  if(error){status.textContent="Unable to load permissions: "+error.message;return;}
+  if(!data?.length){status.textContent="No employer-verification requests yet. Employer outreach is not active.";return;}
+  status.textContent=data.length+" authorization record(s). Employer outreach is not active.";
+  for(const item of data){
+    const wrap=document.createElement("div");wrap.style.cssText="padding:14px;border:1px solid var(--line);border-radius:12px";
+    const name=document.createElement("strong");name.textContent=item.employer_name;
+    const info=document.createElement("p");info.className="muted";info.style.margin="7px 0";
+    info.textContent=item.member_consent_revoked_at?"Permission withdrawn — future invitations blocked.":"Permission recorded — invitation delivery not active.";
+    wrap.append(name,info);
+    if(!item.member_consent_revoked_at){
+      const btn=document.createElement("button");btn.type="button";btn.textContent="Withdraw future verification permission";
+      btn.onclick=async()=>{
+        if(!confirm("Withdraw this employer verification permission? Unused invitations will be invalidated."))return;
+        btn.disabled=true;info.textContent="Withdrawing permission…";
+        const {error:revokeError}=await sb.rpc("yp_revoke_employer_request",{p_request_id:item.id});
+        if(revokeError){info.textContent="Could not withdraw permission: "+revokeError.message;btn.disabled=false;return;}
+        const {data:{user}}=await sb.auth.getUser();if(user)await refreshEmployerConsent(user.id);
+      };
+      wrap.append(btn);
+    }
+    list.append(wrap);
+  }
+}
 
 sb.auth.onAuthStateChange(()=>refresh());
 refresh();
