@@ -330,6 +330,7 @@ async function refreshMemberFocus(uid){
   dest?.scrollIntoView({behavior:"smooth",block:"center"});
   if(next&&["INPUT","SELECT"].includes(dest?.tagName))dest.focus({preventScroll:true});
  };
+ const {data:historyStatus}=await sb.rpc("yp_member_history_status",{p_limit:24});
  const timeline=el("memberTimelineRows");timeline.replaceChildren();
  if(!(jobs||[]).length && !(claims||[]).length){timeline.textContent="No work records yet. Add an employer to begin.";return;}
  for(const job of (jobs||[]).slice(0,5)){
@@ -340,7 +341,9 @@ async function refreshMemberFocus(uid){
  for(const claim of (claims||[]).slice(0,5)){
   const job=(jobs||[]).find(j=>j.id===claim.employment_id);
   const p=document.createElement("div");p.className="notice";
-  p.textContent=(job?.employer_name||"Historical employment")+" · "+claim.period_start+" to "+claim.period_end+" · Self-declared; unverified";
+  const status=(historyStatus||[]).find(x=>x.claim_id===claim.id);
+  const detail=status?.employer_response_status==="received_pending_review"?" · Response pending review":status?.employer_response_status==="employer_request_linked"?" · Employer request linked":" · No employer confirmation";
+  p.textContent=(job?.employer_name||"Historical employment")+" · "+claim.period_start+" to "+claim.period_end+" · Self-declared; unverified"+detail;
   timeline.append(p);
  }
 }
