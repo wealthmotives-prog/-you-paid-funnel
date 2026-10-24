@@ -34,3 +34,28 @@ class ScannerVerdictTests(TestCase):
     def test_missing_lease_is_blocked(self):
         with self.assertRaises(ValueError):
             worker.verdict("job", "clean", lease_token="", digest="a" * 64)
+
+    def test_verdict_requires_current_lease(self):
+        with patch.object(worker, "api", return_value=[]) as api:
+            with self.assertRaises(RuntimeError):
+                worker.verdict("job", "failed", lease_token="claimed-token", code="scanner_error")
+            self.assertIn("lease_token=eq.claimed-token", api.call_args.args[0])
+            self.assertIn("lease_expires_at=gt.", api.call_args.args[0])
+
+
+class WorkerRecoveryTests(TestCase):
+    def test_recovery_precedes_claim(self):
+        call_paths = []
+
+        def record_api(path, **kwargs):
+            call_paths.append(path)
+            return []
+
+        with patch.object(worker, "BASE", "https://example.supabase.co"), \
+             patch.object(worker, "KEY", "synthetic-test-key"), \
+             patch.object(worker.subprocess, "run") as runner, \
+             patch.object(worker, "api", side_effect=record_api):
+            runner.return_value.returncode = 0
+            worker.main()
+        self.assertIn("recover_expired_evidence_inspections", call_paths[0])
+        self.assertIn("claim_evidence_inspection_jobs", call_paths[1])
