@@ -65,3 +65,11 @@ You Paid has a deployed public funnel and member/operator web application, plus 
 **Task 3 — development inventory:** rechecked six deployed Supabase functions: capture-funnel; create-founder-checkout; stripe-founder-webhook; evidence-preflight; employer-confirmation-staging; workverify-concurrency-lab. The three-task follow-up is integrated here, with explicit verification limitations and no assertion of launch-readiness.
 
 **Required to fully close tasks 1 and 2:** new completed workflow **run URL/ID** for upgraded CI; approved isolated environment able to seed synthetic fixture and make concurrent HTTPS calls with test-only credentials. Do not expose secrets in chat. These are validation dependencies, not product-design decisions.
+
+
+## Verified upgraded CI — October 24, 2026
+- GitHub Actions run 40070228321, job 120801875489: **completed / success**.
+- Job logs show checkout@v6 and setup-python@v6 executed, and **Ran 5 tests ... OK**.
+- This supersedes the earlier unverified post-upgrade CI status. Checkpoint 1 is **CLOSED**.
+- Five tests are offline/mocked; do not equate their success with genuine independent live HTTP concurrency verification. Checkpoint 2 remains an explicit pilot/launch blocker.
+- Review inventory checkpoint 3 remains complete.
