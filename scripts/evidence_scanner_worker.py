@@ -37,7 +37,9 @@ def api(path, *, method="GET", data=None, content_type="application/json", retur
 
 def verdict(job_id, state, *, lease_token, digest=None, code=None):
     """Only acknowledge a verdict if one still-scanning job was updated."""
-    if not lease_token:\n        raise ValueError("Inspection lease token required")\n    if state not in ("clean", "rejected", "failed"):
+    if not lease_token:
+        raise ValueError("Inspection lease token required")
+    if state not in ("clean", "rejected", "failed"):
         raise ValueError("Unsupported terminal inspection state")
     patch = {"state": state}
     if state == "clean":
@@ -49,16 +51,22 @@ def verdict(job_id, state, *, lease_token, digest=None, code=None):
     else:
         patch["failure_code"] = code or "inspection_error"
     response = api("/rest/v1/evidence_inspection_jobs?id=eq." +
-                   urllib.parse.quote(job_id, safe="") + "&state=eq.scanning&lease_token=eq." +\n                   urllib.parse.quote(lease_token, safe="") + "&lease_expires_at=gt." +\n                   urllib.parse.quote(__import__("datetime").datetime.now(\n                       __import__("datetime").timezone.utc).isoformat(), safe=""),
+                   urllib.parse.quote(job_id, safe="") + "&state=eq.scanning&lease_token=eq." +
+                   urllib.parse.quote(lease_token, safe="") + "&lease_expires_at=gt." +
+                   urllib.parse.quote(__import__("datetime").datetime.now(
+                       __import__("datetime").timezone.utc).isoformat(), safe=""),
                    method="PATCH", data=patch, return_rows=True)
     if not isinstance(response, list) or len(response) != 1 or response[0].get("state") != state:
         raise RuntimeError("Inspection verdict was not persisted against a scanning job")
 
 
 def inspect(job):
-    job_id = job["id"]\n    token = job.get("lease_token")
+    job_id = job["id"]
+    token = job.get("lease_token")
     try:
-        if not token or not job.get("lease_expires_at"):\n            raise ValueError("Claimed job has no lease")\n        if job.get("state") != "scanning":
+        if not token or not job.get("lease_expires_at"):
+            raise ValueError("Claimed job has no lease")
+        if job.get("state") != "scanning":
             raise ValueError("Unexpected unclaimed job state")
         bucket = job["bucket_id"]
         path = job["object_path"]
@@ -97,7 +105,7 @@ def inspect(job):
         # Never mark clean on scanner errors or database/store failures.
         print("Job " + job_id + " failed: " + type(error).__name__, file=sys.stderr)
         try:
-            verdict(job_id, "failed", code="inspection_error")
+            verdict(job_id, "failed", lease_token=token, code="inspection_error")
         except Exception:
             print("Unable to persist failure status; operator recovery required", file=sys.stderr)
 
