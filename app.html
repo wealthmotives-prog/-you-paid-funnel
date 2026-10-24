@@ -20,11 +20,29 @@ input,select,textarea{width:100%;padding:12px 13px;border-radius:11px;border:1px
 .portal-pane>.section-title{margin:16px 0 0}
 .portal-pane>.card{margin-top:0!important}
 @media(max-width:760px){.portal-nav button{min-width:102px;padding:11px 12px;font-size:13px}.portal-pane .card{padding:17px}}
+
+/* You Paid Member • Silverleaf identity, intentionally distinct from public site */
+body{--bg:#ecf1ee;--panel:#ffffff;--panel2:#e0e8e2;--text:#14231c;--muted:#466055;--line:#bccdc2;--lime:#1b8650;--danger:#9e3434;background:linear-gradient(150deg,#fafdfb 0%,#edf3ef 35%,#dbe4df 100%) fixed;color:var(--text)}
+.top{background:rgba(248,251,249,.9);padding:14px 18px;margin:-8px -12px 8px;border:1px solid #d3ddd7;border-radius:18px;box-shadow:0 5px 22px rgba(19,47,30,.07)}
+.brand span{color:#167b46}.card{box-shadow:0 7px 23px rgba(25,51,36,.06);border-color:#cad8ce}
+button,.btn{background:#177e49;color:white}button.secondary,.btn.secondary{background:#f8fbf8;color:#163525;border:1px solid #b9cebf}
+input,select,textarea{background:#fff;color:#162a20;border-color:#b8cabe}
+input:focus-visible,button:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible{outline:3px solid #4dbb75;outline-offset:2px}
+label,.muted,th,.hero p{color:#435b4f}
+.notice{background:#f1f6f2;color:#355145;border-color:#d1ddd4}
+.status{background:#deefe3;color:#135c36}
+.hero{padding:24px 0 15px}.hero h1{font-size:clamp(33px,5vw,55px);color:#112e20}
+.portal-nav{background:rgba(236,242,238,.97);border-bottom:1px solid #cbd8d0;backdrop-filter:blur(12px)}
+.portal-nav button{background:#fafdfb;color:#1a3527;border-color:#c5d6cb}
+.portal-nav button[aria-selected="true"]{background:#177e49;color:white;border-color:#177e49}
+a{color:#135f3b}
+.member-zone-tag{font-size:11px;letter-spacing:1.6px;color:#176e41;font-weight:900;margin-bottom:2px}
+@media(max-width:760px){.top{margin:0 0 9px;align-items:flex-start}.actions{gap:5px}.top .btn{font-size:12px;padding:9px 11px}}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="top"><div class="brand">You <span>Paid</span></div><div class="actions"><a class="btn secondary" href="/how-it-works.html">How It Works</a><a class="btn secondary" href="/verification-standard.html">Verification Standard</a><a class="btn secondary" href="/faq.html">FAQ</a><a class="btn secondary" href="/founders.html">Founding Access</a><a class="btn" href="/">Home</a><button id="signOut" class="secondary hidden">Sign out</button></div></div>
+  <div class="top"><div><div class="member-zone-tag">MEMBER EXPERIENCE · PRIVATE</div><div class="brand">You <span>Paid</span></div></div><div class="actions"><a class="btn secondary" href="/how-it-works.html">How It Works</a><a class="btn secondary" href="/verification-standard.html">Verification Standard</a><a class="btn secondary" href="/faq.html">FAQ</a><a class="btn secondary" href="/founders.html">Founding Access</a><a class="btn" href="/">Home</a><button id="signOut" class="secondary hidden">Sign out</button></div></div>
 
   <section id="authView" class="auth card">
     <div class="status">Member access</div>
