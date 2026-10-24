@@ -181,6 +181,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:11px;border-bottom:1px s
       </div>
     </div>
 
+<div class="card" style="margin-top:14px"><h3>WorkVerify attention summary</h3><p id="workverifyAttention" class="muted" role="status">Checking pending work…</p><div class="grid"><div class="notice"><strong id="reviewResponseCount">—</strong><br>Employer responses</div><div class="notice"><strong id="reviewHistoryCount">—</strong><br>Historical links pending</div></div><p class="muted" style="font-size:12px">Counts reflect the current loaded queues, not a complete organization-wide analytics report.</p></div>
 <div class="card scroll" style="margin-top:14px"><h3>Employer responses · Digital &amp; Paper</h3><p class="muted">Responses are unreviewed until an operator records a decision. Accepting a response does not automatically verify employment or alter WorkScore.</p><p id="employerReviewMessage" class="muted">Checking review queue…</p><table><thead><tr><th>Employer</th><th>Channel</th><th>Employment / Dates / Schedule</th><th>Status</th><th>Review</th></tr></thead><tbody id="employerReviewRows"></tbody></table></div>
 <div class="card scroll" style="margin-top:14px"><h3>Historical work · Employer request links</h3><p class="muted">Operator-only association of self-declared periods with employer verification requests. Linking is not confirmation and does not create verified attendance or credit history.</p><p id="historyLinkMessage" class="muted">Loading history candidates…</p><table><thead><tr><th>Employer</th><th>Declared period</th><th>Link state</th><th>Action</th></tr></thead><tbody id="historyLinkRows"></tbody></table></div>
     <div class="section" id="waitlist">
@@ -222,6 +223,8 @@ async function loadEmployerReviewQueue(){
  const {data,error}=await sb.rpc("yp_admin_employer_review_queue",{p_limit:50});
  if(error){msg.textContent="Review queue unavailable: "+error.message;return;}
  msg.textContent=(data?.length||0)+" employer response(s).";
+ el("reviewResponseCount").textContent=String((data||[]).filter(x=>x.review_status==="unreviewed").length);
+ el("workverifyAttention").textContent="Review queues loaded. Select an item below to record a decision or connect an employer request.";
  for(const rec of data||[]){
   const tr=document.createElement("tr");
   const add=(value)=>{const td=document.createElement("td");td.textContent=String(value??"—");tr.append(td);return td;};
@@ -257,6 +260,7 @@ async function loadHistoryLinks(){
  const {data,error}=await sb.rpc("yp_admin_history_link_candidates",{p_limit:50});
  if(error){msg.textContent="History links unavailable: "+error.message;return;}
  msg.textContent=(data?.length||0)+" eligible claim/request pair(s).";
+ el("reviewHistoryCount").textContent=String((data||[]).filter(x=>x.link_status==="unlinked").length);
  for(const rec of data||[]){
   const tr=document.createElement("tr");const cell=(value)=>{const td=document.createElement("td");td.textContent=String(value??"—");tr.append(td);return td;};
   cell(rec.employer_name);cell(rec.period_start+" — "+rec.period_end);cell(rec.link_status);
