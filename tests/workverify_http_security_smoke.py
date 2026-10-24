@@ -27,12 +27,24 @@ def main():
     args=p.parse_args()
     if not args.url.startswith("https://"): p.error("HTTPS --url required")
     if args.mode=="closed":
-        status,body,headers=send(args.url,{"test":"synthetic"},args.jwt)
-        assert status in (401,403,503), f"Unexpected status {status}"
-        if status==503:
-            assert "employer_confirmation_not_live" in body, "Wrong closed response"
-            assert "no-store" in headers.get("Cache-Control",""), "No no-store header"
-        print("PASS: endpoint closed",status)
+        if "/functions/v1/employer-confirmation-staging" not in args.url:
+            p.error("Closed-mode test requires employer-confirmation-staging endpoint")
+        probes=[
+            ("ordinary",{"test":"synthetic"}),
+            ("invalid_enum",{"token":"0"*64,"employment":"perhaps","dates":"yes","schedule":"yes","role":"Synthetic Tester"}),
+            ("oversize",{"synthetic":"Z"*4096}),
+        ]
+        for label,body_in in probes:
+            status,body,headers=send(args.url,body_in,args.jwt)
+            assert status in (401,403,503), f"{label}: unexpected status {status}"
+            if args.jwt and status in (401,403):
+                raise AssertionError(f"{label}: test JWT refused; cannot verify disabled handler")
+            if status==503:
+                assert "employer_confirmation_not_live" in body, f"{label}: wrong closed response"
+                normalized={k.lower():v for k,v in headers.items()}
+                assert "no-store" in normalized.get("cache-control",""), f"{label}: missing no-store"
+                assert normalized.get("x-content-type-options")=="nosniff", f"{label}: missing nosniff"
+            print("PASS: closed staging probe", label, status)
     else:
         # Protect against accidental production submissions.
         if not args.synthetic_allow or not args.token or not args.jwt:
