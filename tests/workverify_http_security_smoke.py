@@ -5,6 +5,7 @@ Default mode: verify staging is closed. Explicit concurrency testing requires
 a separate synthetic TEST endpoint and invitation token; never use real employers.
 """
 import argparse, concurrent.futures, json, os, urllib.request, urllib.error
+from urllib.parse import urlparse
 
 def send(url, body=None, jwt=None):
     raw = None if body is None else json.dumps(body).encode()
@@ -25,9 +26,12 @@ def main():
     p.add_argument("--token",default=os.getenv("WORKVERIFY_SYNTHETIC_TOKEN"))
     p.add_argument("--synthetic-allow",action="store_true")
     args=p.parse_args()
-    if not args.url.startswith("https://"): p.error("HTTPS --url required")
+    parsed_url=urlparse(args.url)
+    project_host="xknfxcyezchtypaisieu.supabase.co"
+    if parsed_url.scheme!="https" or parsed_url.netloc!=project_host or parsed_url.username or parsed_url.password or parsed_url.query or parsed_url.fragment:
+        p.error("Only the known HTTPS Supabase project host, without credentials/query/fragment, is accepted")
     if args.mode=="closed":
-        if "/functions/v1/employer-confirmation-staging" not in args.url:
+        if parsed_url.path!="/functions/v1/employer-confirmation-staging":
             p.error("Closed-mode test requires employer-confirmation-staging endpoint")
         probes=[
             ("ordinary",{"test":"synthetic"}),
@@ -51,7 +55,7 @@ def main():
             p.error("Concurrent test needs --synthetic-allow, test JWT, synthetic token")
         if len(args.token)!=64 or any(c not in "0123456789abcdef" for c in args.token):
             p.error("Token must be a 64-character lowercase hex synthetic token")
-        if "workverify-concurrency-lab" not in args.url:
+        if parsed_url.path!="/functions/v1/workverify-concurrency-lab":
             p.error("Concurrent mode requires isolated workverify-concurrency-lab")
         payload={"token":args.token}
         with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
@@ -59,7 +63,8 @@ def main():
         statuses=sorted([r[0] for r in results])
         assert statuses==[202,409], f"Expected one acceptance and one duplicate refusal; got {statuses}"
         for status,body,headers in results:
-            assert "no-store" in headers.get("Cache-Control","")
+            normalized={k.lower():v for k,v in headers.items()}
+            assert "no-store" in normalized.get("cache-control","")
             if status==202:
                 response=json.loads(body)
                 assert response.get("employment_verified") is False
