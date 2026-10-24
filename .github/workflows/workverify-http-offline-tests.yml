@@ -1,5 +1,6 @@
 name: WorkVerify security smoke unit checks
 on:
+  workflow_dispatch:
   push:
     paths:
       - 'tests/workverify_http_security_smoke.py'
