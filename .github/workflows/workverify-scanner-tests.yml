@@ -1,0 +1,29 @@
+name: WorkVerify scanner offline tests
+on:
+  push:
+    paths:
+      - 'scripts/evidence_scanner_worker.py'
+      - 'tests/test_evidence_scanner.py'
+      - 'tests/test_evidence_scanner_isolated.py'
+      - '.github/workflows/workverify-scanner-tests.yml'
+  pull_request:
+    paths:
+      - 'scripts/evidence_scanner_worker.py'
+      - 'tests/test_evidence_scanner.py'
+      - 'tests/test_evidence_scanner_isolated.py'
+      - '.github/workflows/workverify-scanner-tests.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  isolated-unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Compile scanner and run synthetic tests
+        run: |
+          python -m py_compile scripts/evidence_scanner_worker.py
+          python -m unittest discover -s tests -p 'test_evidence_scanner*.py' -v
