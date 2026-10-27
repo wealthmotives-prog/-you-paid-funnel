@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><title>WorkScore Research Simulator | You Paid</title>
+<style>
+:root{color-scheme:dark;--bg:#080d13;--panel:#121b24;--line:#2d3b49;--ink:#f7fafc;--sub:#a2b4c1;--a:#7fe1ac}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,sans-serif}main{max-width:1050px;margin:auto;padding:32px 18px 70px}
+a{color:var(--a)}h1{font-size:clamp(28px,5vw,45px);line-height:1.1;margin:12px 0}.eyebrow{color:var(--a);font-weight:800;letter-spacing:.14em;font-size:12px}
+.sub{color:var(--sub)}.notice{background:#1c2a32;border:1px solid #537065;border-radius:14px;padding:16px;margin:22px 0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:22px}.fields{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+label{display:block;font-size:14px;font-weight:650}label span{display:block;margin-bottom:5px;color:var(--sub)}input[type=number],select{font:inherit;width:100%;background:#071016;color:var(--ink);padding:10px;border:1px solid #587081;border-radius:8px}
+.checkbox{display:flex;gap:10px;align-items:start;margin-top:16px}.checkbox input{accent-color:var(--a);width:18px;height:18px;flex:none;margin-top:3px}
+button{border-radius:9px;padding:10px 15px;background:var(--a);border:0;color:#062012;font-size:14px;font-weight:800;cursor:pointer}button.secondary{background:#263742;color:var(--ink);border:1px solid #527080}
+.buttons{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 24px}.metric{font-size:64px;font-weight:850;letter-spacing:-.06em;line-height:1.15}#grade{color:var(--a)}.status{font-weight:800}.bar{height:11px;border-radius:9px;background:#273743;margin-top:6px;overflow:hidden}.bar>div{height:100%;background:var(--a)}.factor{margin:14px 0}small{color:var(--sub)}.factorline{display:flex;justify-content:space-between;gap:10px}.footer{margin-top:22px;color:var(--sub);font-size:13px}
+@media(max-width:780px){.grid{grid-template-columns:1fr}.fields{grid-template-columns:1fr 1fr}.metric{font-size:54px}}
+</style></head><body><main>
+<div class="eyebrow">YOU PAID / EXPERIMENTAL RESEARCH LAB · V0.1</div><h1>WorkScore Simulator</h1>
+<p class="sub">Explore how evidence, obligations, and verified fulfillment affect an internal performance grade. This tool uses fictional scenarios and runs entirely in your browser.</p>
+<div class="notice"><strong>Research only.</strong> This is not a credit score, a payment, a tradeline, a consumer-reporting product, or evidence of bureau approval. It does not save, transmit, or verify data. Never enter real personal or employer information.</div>
+<div class="buttons" aria-label="Fictional scenarios">
+<button class="secondary" data-scenario="perfect">Complete record</button>
+<button class="secondary" data-scenario="leave">Approved leave</button>
+<button class="secondary" data-scenario="partial">Partial performance</button>
+<button class="secondary" data-scenario="self">Self-declared only</button>
+<button class="secondary" data-scenario="disputed">Contested evidence</button>
+<button class="secondary" data-scenario="empty">No eligible units</button>
+</div>
+<div class="grid"><section class="card" aria-labelledby="inputs"><h2 id="inputs">Fictional evaluation window</h2><p class="sub">Values are research assumptions. An actual obligation must be defined and consented to independently; entering units here does not create one.</p>
+<div class="fields">
+<label><span>Expected units</span><input id="expected" type="number" min="0" max="10000" step=".25" value="20"></label>
+<label><span>Verified completed units</span><input id="completed" type="number" min="0" max="10000" step=".25" value="20"></label>
+<label><span>Excused units</span><input id="excused" type="number" min="0" max="10000" step=".25" value="0"></label>
+<label><span>Provenance (30%)</span><input id="provenance" type="number" min="0" max="100" value="100"></label>
+<label><span>Obligation definition (20%)</span><input id="obligation" type="number" min="0" max="100" value="100"></label>
+<label><span>Record integrity (10%)</span><input id="integrity" type="number" min="0" max="100" value="100"></label>
+<label><span>Evidence freshness (10%)</span><input id="freshness" type="number" min="0" max="100" value="100"></label>
+</div>
+<label class="checkbox"><input id="independent" type="checkbox" checked><span>Independent corroboration available</span></label>
+<label class="checkbox"><input id="disputed" type="checkbox"><span>Evidence disputed (requires review)</span></label>
+<p><small>Verified fulfillment supplies the remaining 30% of the weighted grade. Blank factor values are treated as missing evidence, not zero.</small></p>
+</section>
+<section class="card" aria-live="polite" aria-labelledby="resultTitle"><h2 id="resultTitle">Calculated result</h2>
+<div class="metric" id="grade">A</div><div class="status" id="status">Research grade</div>
+<p id="score">Score: 100.00 / 100</p><p id="confidence">Confidence: high</p><p id="eligibility">Eligible units: 20</p>
+<div id="factors"></div>
+<div class="notice"><strong>Furnishing status: blocked.</strong> No simulated result changes an actual account or establishes an on-time payment.</div>
+<p class="sub" id="reason">Values are illustrative only.</p>
+</section></div>
+<p class="footer">Formula version research-0.1 · A ≥90; B ≥80; C ≥70; D ≥60; E below 60. Scores and thresholds are unvalidated and not intended to determine financial eligibility. <a href="/">Return to You Paid</a>.</p>
+</main>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+const factors=[['provenance',.30,'Independent provenance'],['obligation',.20,'Defined obligations'],['fulfillment',.30,'Verified fulfillment'],['integrity',.10,'Record integrity'],['freshness',.10,'Freshness & coverage']];
+const scenarios={
+perfect:[20,20,0,100,100,100,100,true,false],
+leave:[20,12,8,100,100,100,100,true,false],
+partial:[20,14,0,90,100,95,80,true,false],
+self:[20,20,0,10,80,75,70,false,false],
+disputed:[20,18,0,90,100,80,80,true,true],
+empty:[20,0,20,100,100,100,100,true,false]};
+const inputIds=['expected','completed','excused','provenance','obligation','integrity','freshness'];
+function applyScenario(name){
+ const s=scenarios[name];inputIds.forEach((id,i)=>$(id).value=s[i]);$('independent').checked=s[7];$('disputed').checked=s[8];render();
+}
+function read(id){const raw=$(id).value.trim();return raw===''?null:Number(raw)}
+function render(){
+ const values=Object.fromEntries(inputIds.map(id=>[id,read(id)]));
+ const nums=[values.expected,values.completed,values.excused];
+ let status='graded',reason='',confidence='insufficient',score=null,band='—',due=null;
+ const all=[...Object.values(values)];
+ if(nums.some(n=>n===null||!Number.isFinite(n)||n<0)||values.excused>values.expected||values.completed>values.expected-values.excused){
+ status='invalid';reason='Units must be finite, nonnegative; excused units cannot exceed expected units; completed units cannot exceed eligible units.';
+ }else if(all.some(v=>v!==null&&(!Number.isFinite(v)||v<0))||[values.provenance,values.obligation,values.integrity,values.freshness].some(v=>v!==null&&v>100)){
+ status='invalid';reason='All factor values must be between 0 and 100.';
+ }else{
+ due=values.expected-values.excused;
+ if(due===0){status='not_gradable';reason='There are no eligible units due; no grade is awarded.'}
+ else if($('disputed').checked){status='manual_review';reason='Evidence is contested; refer for human review rather than lowering the grade.'}
+ else if([values.provenance,values.obligation,values.integrity,values.freshness].some(v=>v===null)){
+ status='insufficient_evidence';reason='A scored evidence component is missing; no grade is awarded.'
+ }else{
+ const v={...values,fulfillment:values.completed/due*100};
+ score=factors.reduce((s,[id,w])=>s+v[id]*w,0);
+ band=score>=90?'A':score>=80?'B':score>=70?'C':score>=60?'D':'E';
+ confidence=$('independent').checked?(values.provenance>=80?'high':'medium'):'low';
+ reason='Research result only. This is not a consumer credit account payment status.';
+ }
+ }
+ $('grade').textContent=band;
+ $('status').textContent=status.replaceAll('_',' ');
+ $('score').textContent=score===null?'No numeric grade': 'Score: '+(Math.round((score+Number.EPSILON)*100)/100).toFixed(2)+' / 100';
+ $('confidence').textContent='Evidence confidence: '+confidence;
+ $('eligibility').textContent='Eligible units: '+(due===null?'—':due);
+ $('reason').textContent=reason;
+ const v={...values,fulfillment:due>0?values.completed/due*100:null};
+ const list=factors.map(([id,w,name])=>{
+ const n=v[id],pct=n===null?0:Math.max(0,Math.min(n,100));
+ return '<div class="factor"><div class="factorline"><span>'+name+' ('+Math.round(w*100)+'%)</span><strong>'+(n===null?'missing':n.toFixed(1)+'%')+'</strong></div><div class="bar"><div style="width:'+pct+'%"></div></div></div>';
+ });
+ $('factors').innerHTML=list.join('');
+}
+document.querySelectorAll('[data-scenario]').forEach(b=>b.addEventListener('click',()=>applyScenario(b.dataset.scenario)));
+document.querySelectorAll('input').forEach(i=>i.addEventListener('input',render));
+render();
+</script></body></html>
