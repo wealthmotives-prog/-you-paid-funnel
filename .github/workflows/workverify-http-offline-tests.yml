@@ -9,6 +9,8 @@ on:
       - 'tests/test_workscore_formula_lab.py'
       - 'tests/test_workscore_audit_lab.py'
       - 'tests/test_workscore_audit_dashboard.py'
+      - 'tests/test_workscore_shared_fixtures.py'
+      - 'research/workscore_fixtures_v0.1.json'
       - 'workscore-audit-lab.html'
       - 'research/workscore_audit_lab.py'
       - 'tests/test_workscore_browser_parity.py'
@@ -43,3 +45,4 @@ jobs:
           python -m unittest discover -s tests -p 'test_workscore_browser_parity.py' -v
           python -m unittest discover -s tests -p 'test_workscore_audit_lab.py' -v
           python -m unittest discover -s tests -p 'test_workscore_audit_dashboard.py' -v
+          python -m unittest discover -s tests -p 'test_workscore_shared_fixtures.py' -v
