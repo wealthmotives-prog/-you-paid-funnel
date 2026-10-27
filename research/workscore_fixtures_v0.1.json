@@ -1,0 +1,84 @@
+{
+  "schema": "you-paid-workscore-fixtures-v0.1",
+  "purpose": "fictional research only; not credit payment or furnished data",
+  "cases": [
+    {
+      "id": "SHIFT-001",
+      "note": "Corrected fictional work record",
+      "events": [
+        {
+          "kind": "graded",
+          "expected": "20",
+          "completed": "18",
+          "excused": "0",
+          "provenance": "90",
+          "obligation_definition": "100",
+          "integrity": "100",
+          "freshness": "80",
+          "independently_verified": true,
+          "disputed": false
+        },
+        {
+          "kind": "evidence_corrected",
+          "expected": "20",
+          "completed": "20",
+          "excused": "0",
+          "provenance": "90",
+          "obligation_definition": "100",
+          "integrity": "100",
+          "freshness": "80",
+          "independently_verified": true,
+          "disputed": false
+        }
+      ]
+    },
+    {
+      "id": "LEAVE-002",
+      "note": "Approved leave excluded from denominator",
+      "events": [
+        {
+          "kind": "graded",
+          "expected": "20",
+          "completed": "12",
+          "excused": "8",
+          "provenance": "100",
+          "obligation_definition": "100",
+          "integrity": "100",
+          "freshness": "100",
+          "independently_verified": true,
+          "disputed": false
+        }
+      ]
+    },
+    {
+      "id": "REVIEW-003",
+      "note": "Contested evidence withheld from grading",
+      "events": [
+        {
+          "kind": "graded",
+          "expected": "20",
+          "completed": "18",
+          "excused": "0",
+          "provenance": "90",
+          "obligation_definition": "100",
+          "integrity": "100",
+          "freshness": "80",
+          "independently_verified": true,
+          "disputed": false
+        },
+        {
+          "kind": "regraded",
+          "expected": "20",
+          "completed": "18",
+          "excused": "0",
+          "provenance": "90",
+          "obligation_definition": "100",
+          "integrity": "100",
+          "freshness": "80",
+          "independently_verified": true,
+          "disputed": true
+        }
+      ]
+    }
+  ]
+}
