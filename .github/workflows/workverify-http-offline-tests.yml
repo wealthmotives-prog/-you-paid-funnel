@@ -7,6 +7,8 @@ on:
       - 'tests/test_workverify_http_smoke_offline.py'
       - 'tests/test_prelaunch_ad_readiness.py'
       - 'tests/test_workscore_formula_lab.py'
+      - 'tests/test_workscore_audit_lab.py'
+      - 'research/workscore_audit_lab.py'
       - 'tests/test_workscore_browser_parity.py'
       - 'workscore-lab.html'
       - 'research/workscore_lab.py'
@@ -37,3 +39,4 @@ jobs:
           python -m unittest discover -s tests -p 'test_prelaunch_ad_readiness.py' -v
           python -m unittest discover -s tests -p 'test_workscore_formula_lab.py' -v
           python -m unittest discover -s tests -p 'test_workscore_browser_parity.py' -v
+          python -m unittest discover -s tests -p 'test_workscore_audit_lab.py' -v
