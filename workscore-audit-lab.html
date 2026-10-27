@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>WorkScore Audit Lab | You Paid</title>
+<style>
+:root{color-scheme:dark;--bg:#080d13;--panel:#111a23;--line:#35424e;--muted:#a6b6c5;--fg:#f5f9fb;--green:#8cebb9}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,sans-serif}main{max-width:1080px;margin:auto;padding:32px 17px 80px}h1{font-size:clamp(29px,5vw,46px);margin:7px 0}h2{font-size:20px}h3{margin:0 0 10px}.muted,small{color:var(--muted)}.eyebrow{font-weight:800;letter-spacing:.13em;color:var(--green);font-size:12px}.notice,.panel{border:1px solid var(--line);border-radius:16px;background:var(--panel);padding:18px;margin-top:16px}.notice{border-color:#53776c}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.metric{background:#0c141b;padding:15px;border-radius:11px}.metric strong{display:block;font-size:24px}label{font-weight:700;display:block;margin:15px 0 6px}select{background:#071018;border:1px solid #6c8b99;border-radius:9px;color:white;padding:12px;width:100%;max-width:500px;font:inherit}table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:10px;border-bottom:1px solid var(--line);vertical-align:top}th{color:var(--muted)}.scroll{overflow:auto}code{font:12px ui-monospace,monospace;overflow-wrap:anywhere;color:#b6e9d0}.chip{background:#234136;color:#b1f5cf;border-radius:100px;padding:4px 9px;font-size:12px}.event{border-left:2px solid #6abf96;padding:2px 0 14px 15px;margin-left:5px}.event p{margin:5px 0}a{color:var(--green)}.score{font-size:60px;font-weight:850;line-height:1.1}.bar{height:9px;border-radius:8px;background:#2d3944;overflow:hidden}.bar div{height:100%;background:var(--green)}.factor{margin:12px 0}.spread{display:flex;justify-content:space-between;gap:10px}.alert{color:#ffcf85}@media(max-width:750px){.grid,.metrics{grid-template-columns:1fr}.scroll{margin:0 -5px}}
+</style></head><body><main><div class="eyebrow">YOU PAID / SYNTHETIC RESEARCH LAB</div><h1>WorkScore Audit Dashboard</h1><p class="muted">Inspect the chain of evidence, grading decisions, and corrections behind a fictional internal performance record.</p><div class="notice"><strong>Lab only.</strong> All accounts and evidence below are fictional. The events are recreated in browser memory when the page loads, not retrieved from a production ledger. These grades are not credit scores, payments, tradelines or bureau submissions. No personal data is collected, stored or transmitted.</div>
+<label for="case">Select a fictional case</label><select id="case"><option value="shift">SHIFT-001 · corrected performance record</option><option value="leave">LEAVE-002 · approved leave</option><option value="dispute">REVIEW-003 · contested evidence</option></select>
+<div class="metrics"><div class="metric"><small>Latest outcome</small><strong id="outcome">—</strong></div><div class="metric"><small>Confidence</small><strong id="confidence">—</strong></div><div class="metric"><small>Chain verification</small><strong id="integrity">Checking…</strong></div></div>
+<div class="grid"><section class="panel"><h2>Current grade breakdown</h2><div class="score" id="grade">—</div><p id="scoreline"></p><div id="factors"></div><p class="muted" id="reason"></p><p><span class="chip">Furnishing blocked</span> <span class="chip">Formula research-0.1</span></p></section>
+<section class="panel"><h2>Append-only event history</h2><div id="timeline"></div></section></div>
+<section class="panel"><h2>Evidence and formula trace</h2><p class="muted">Select an event to inspect its immutable fictional input snapshot. The display retains earlier records rather than silently overwriting them.</p><div class="scroll"><table><thead><tr><th>Factor</th><th>Value</th><th>Weight</th><th>Weighted contribution</th></tr></thead><tbody id="trace"></tbody></table></div><p id="traceNote" class="muted"></p><h3>Selected event digest</h3><code id="eventHash"></code><h3 style="margin-top:20px">Prior event digest</h3><code id="prevHash"></code></section>
+<p class="muted">Research example only. Hashes demonstrate tamper-evident linkage of fictional browser-generated events; they are not evidence of external timestamping or tamper-proof storage. <a href="/workscore-lab.html">Open scoring simulator</a> · <a href="/">You Paid home</a></p>
+</main>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+const definitions=[['provenance',.3,'Independent provenance'],['obligation',.2,'Defined obligations'],['fulfillment',.3,'Verified fulfillment'],['integrity',.1,'Record integrity'],['freshness',.1,'Verification freshness']];
+const base={expected:20,completed:18,excused:0,provenance:90,obligation:100,integrity:100,freshness:80,independent:true,disputed:false};
+const cases={
+shift:[{kind:'initial',note:'Fictional payroll confirmation showed 18 of 20 units',data:{...base}},
+{kind:'evidence_corrected',note:'Two units added after fictional source correction',data:{...base,completed:20}}],
+leave:[{kind:'initial',note:'Eight excused units excluded from the performance denominator',data:{...base,expected:20,completed:12,excused:8,provenance:100,freshness:100}}],
+dispute:[{kind:'initial',note:'Uncontested provisional fictional evidence',data:{...base}},
+{kind:'contested',note:'Member contests the employer evidence; grade withheld pending review',data:{...base,disputed:true}}]
+};
+function calc(x){
+ const due=x.expected-x.excused;
+ if(due<=0)return {status:'not_gradable',reason:'No eligible units due',grade:null,confidence:'insufficient',factors:[]};
+ if(x.disputed)return {status:'manual_review',reason:'Contested: grade withheld pending human review',grade:null,confidence:'insufficient',factors:[]};
+ const values={...x,fulfillment:x.completed/due*100};
+ const components=definitions.map(([id,weight,label])=>({id,label,weight,value:values[id],contribution:values[id]*weight}));
+ const raw=components.reduce((n,f)=>n+f.contribution,0);
+ const grade=raw>=90?'A':raw>=80?'B':raw>=70?'C':raw>=60?'D':'E';
+ return {status:'graded',grade,score:raw.toFixed(2),confidence:x.independent?(x.provenance>=80?'high':'medium'):'low',components,reason:'Internal experimental grade only; no financial account outcome'};
+}
+function canonical(v){if(Array.isArray(v))return '['+v.map(canonical).join(',')+']';if(v&&typeof v==='object')return '{'+Object.keys(v).sort().map(k=>JSON.stringify(k)+':'+canonical(v[k])).join(',')+'}';return JSON.stringify(v)}
+async function hash(v){const bytes=new TextEncoder().encode(canonical(v));const d=await crypto.subtle.digest('SHA-256',bytes);return [...new Uint8Array(d)].map(n=>n.toString(16).padStart(2,'0')).join('')}
+async function build(id){let prev='GENESIS';const result=[];for(let i=0;i<cases[id].length;i++){const source=cases[id][i];const payload={sequence:i+1,window_id:id,kind:source.kind,version:'research-0.1',evidence:source.data,prior_digest:prev,result:calc(source.data)};const digest=await hash(payload);result.push({...payload,digest,note:source.note});prev=digest}return result}
+function renderEvent(e){
+ const c=e.result;$('outcome').textContent=c.status.replaceAll('_',' ');$('confidence').textContent=c.confidence;$('grade').textContent=c.grade??'—';$('scoreline').textContent=c.score?'Internal result: '+c.score+'/100':'No numeric grade';$('reason').textContent=c.reason;
+ $('eventHash').textContent=e.digest;$('prevHash').textContent=e.prior_digest;
+ $('factors').replaceChildren();
+ $('trace').replaceChildren();
+ (c.components||[]).forEach(f=>{
+ const div=document.createElement('div');div.className='factor';const title=document.createElement('div');title.className='spread';title.textContent=f.label+' ('+Math.round(f.weight*100)+'%) — '+f.value.toFixed(1)+'%';
+ const bar=document.createElement('div');bar.className='bar';const fill=document.createElement('div');fill.style.width=Math.min(100,Math.max(0,f.value))+'%';bar.append(fill);div.append(title,bar);$('factors').append(div);
+ const row=document.createElement('tr');[f.label,f.value.toFixed(2),Math.round(f.weight*100)+'%',f.contribution.toFixed(2)].forEach(value=>{const td=document.createElement('td');td.textContent=value;row.append(td)});$('trace').append(row);
+ });
+ $('traceNote').textContent='Expected '+e.evidence.expected+' units; completed '+e.evidence.completed+'; excused '+e.evidence.excused+'; eligible '+(e.evidence.expected-e.evidence.excused)+'. Fictional evidence snapshot '+e.sequence+'.';
+}
+let epoch=0;
+async function display(){const current=++epoch;const id=$('case').value;$('integrity').textContent='Checking…';const events=await build(id);if(current!==epoch)return;
+ const valid=await Promise.all(events.map(async(e,i)=>e.prior_digest===(i?events[i-1].digest:'GENESIS')&&e.digest===await hash({sequence:e.sequence,window_id:e.window_id,kind:e.kind,version:e.version,evidence:e.evidence,prior_digest:e.prior_digest,result:e.result})));
+ if(current!==epoch)return;
+ $('integrity').textContent=valid.every(Boolean)?'Valid · lab':'Mismatch';const timeline=$('timeline');timeline.replaceChildren();
+ events.forEach((e,i)=>{const div=document.createElement('div');div.className='event';const btn=document.createElement('button');btn.type='button';btn.textContent='#'+e.sequence+' '+e.kind.replaceAll('_',' ');btn.style.cssText='background:#284638;color:#d7ffe8;border:1px solid #5d9b78;border-radius:7px;padding:7px;cursor:pointer';btn.addEventListener('click',()=>renderEvent(e));const p=document.createElement('p');p.className='muted';p.textContent=e.note;div.append(btn,p);timeline.append(div)});renderEvent(events.at(-1));
+}
+$('case').addEventListener('change',display);display().catch(()=>{$('integrity').textContent='Unavailable';$('reason').textContent='Hashing requires a secure browser context.'});
+</script></body></html>
