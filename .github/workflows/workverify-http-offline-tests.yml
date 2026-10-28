@@ -15,6 +15,8 @@ on:
       - 'tests/test_evidence_upload_hard_pause.py'
       - 'tests/test_evidence_storage_freeze.py'
       - 'tests/test_storage_negative_harness.py'
+      - 'tests/test_evidence_quarantine_lab.py'
+      - 'research/evidence_quarantine_lab.py'
       - 'tests/workverify_storage_negative_http.py'
       - 'supabase/migrations/20261028_evidence_read_hard_pause.sql'
       - 'supabase/migrations/20261028_evidence_upload_hard_pause.sql'
@@ -61,3 +63,4 @@ jobs:
           python -m unittest discover -s tests -p 'test_evidence_upload_hard_pause.py' -v
           python -m unittest discover -s tests -p 'test_evidence_storage_freeze.py' -v
           python -m unittest discover -s tests -p 'test_storage_negative_harness.py' -v
+          python -m unittest discover -s tests -p 'test_evidence_quarantine_lab.py' -v
