@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>You Paid | Formula Comparison Lab</title><style>
+:root{color-scheme:dark;--bg:#080e14;--card:#131e27;--line:#344550;--fg:#f2f7f9;--muted:#aec0ce;--mint:#9be7c1}*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,-apple-system,sans-serif}main{max-width:1000px;margin:auto;padding:35px 18px 70px}
+h1{font-size:clamp(28px,5vw,46px);line-height:1.12;margin:10px 0}.eyebrow{font-size:12px;letter-spacing:.13em;color:var(--mint);font-weight:800}.muted,small{color:var(--muted)}.notice,.card{background:var(--card);border:1px solid var(--line);padding:20px;border-radius:16px;margin:16px 0}.notice{border-color:#587768}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}label{display:block;font-weight:700;margin:10px 0}select{width:100%;background:#0c151e;color:white;border:1px solid #8096a3;border-radius:9px;padding:11px;font:inherit}.number{font-size:52px;font-weight:850;color:var(--mint)}.metric{font-weight:650}.row{display:flex;justify-content:space-between;gap:12px;margin:12px 0}.track{background:#31404b;border-radius:9px;height:9px;overflow:hidden}.track div{background:var(--mint);height:100%}table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid var(--line);padding:10px;text-align:left}th{color:var(--muted)}.scroll{overflow:auto}a{color:var(--mint)}@media(max-width:700px){.grid{grid-template-columns:1fr}}
+</style></head><body><main>
+<div class="eyebrow">YOU PAID / EXPERIMENTAL FORMULA LAB</div><h1>Compare WorkScore policies</h1><p class="muted">Replay one fictional evidence snapshot through two experimental weighting systems. The original fictional events stay unchanged.</p>
+<div class="notice"><strong>Research only.</strong> Alternative policy v0.2 is a hypothetical sensitivity test—not adopted, validated or approved. Neither grade reflects creditworthiness, an actual payment, or bureau-furnishable data. This browser-only tool uses publicly accessible fictional fixtures and does not read member accounts.</div>
+<div class="grid"><div><label for="case">Fictional case</label><select id="case"><option>Loading fixtures…</option></select></div><div><label for="snapshot">Event snapshot</label><select id="snapshot"><option>Loading events…</option></select></div></div>
+<div class="grid"><div class="card"><h2>Policy research-0.1</h2><div class="number" id="oldGrade">—</div><div class="metric" id="oldScore">No result</div><p class="muted" id="oldStatus"></p><div id="oldBars"></div></div>
+<div class="card"><h2>Hypothetical research-0.2</h2><div class="number" id="newGrade">—</div><div class="metric" id="newScore">No result</div><p class="muted" id="newStatus"></p><div id="newBars"></div></div></div>
+<section class="card"><h2>Why the result changes</h2><p id="explain">Loading…</p><div class="scroll"><table><thead><tr><th>Component</th><th>Evidence score</th><th>v0.1 weight</th><th>v0.2 weight</th></tr></thead><tbody id="diff"></tbody></table></div><p class="muted">Version v0.2 prioritizes independently corroborated evidence more heavily and fulfillment less heavily than v0.1. A different result does not establish that either policy is fairer, more accurate, or predictive. The inputs are fictional and no ledger is updated.</p></section>
+<p class="muted">Formula comparison is isolated from all live accounts, credit balances, and bureau statuses. <a href="/workscore-audit-lab.html">Fictional audit dashboard</a> · <a href="/workscore-lab.html">Formula simulator</a></p>
+</main><script>
+'use strict';
+const $=id=>document.getElementById(id);
+const policies={
+'research-0.1':{provenance:.30,obligation_definition:.20,fulfillment:.30,integrity:.10,freshness:.10},
+'research-0.2':{provenance:.40,obligation_definition:.20,fulfillment:.20,integrity:.10,freshness:.10}
+};
+let cases=[];
+function score(e,weights){
+const expected=Number(e.expected),excused=Number(e.excused),completed=Number(e.completed),due=expected-excused;
+if(![expected,excused,completed].every(Number.isFinite)||expected<0||excused<0||completed<0||excused>expected||completed>due)
+return {status:'invalid',grade:null};
+if(due===0)return {status:'not_gradable',grade:null};
+if(e.disputed)return {status:'manual_review',grade:null};
+const values={provenance:Number(e.provenance),obligation_definition:Number(e.obligation_definition),fulfillment:completed/due*100,integrity:Number(e.integrity),freshness:Number(e.freshness)};
+if(Object.values(values).some(x=>!Number.isFinite(x)||x<0||x>100))return {status:'insufficient_evidence',grade:null};
+const raw=Object.keys(weights).reduce((s,key)=>s+values[key]*weights[key],0);
+return {status:'graded',grade:raw>=90?'A':raw>=80?'B':raw>=70?'C':raw>=60?'D':'E',score:raw.toFixed(2),values,confidence:e.independently_verified?(values.provenance>=80?'high':'medium'):'low'};
+}
+function render(){
+const c=cases.find(x=>x.id===$('case').value);if(!c)return;const e=c.events[Number($('snapshot').value)];if(!e)return;
+const a=score(e,policies['research-0.1']),b=score(e,policies['research-0.2']);
+for(const [prefix,res] of [['old',a],['new',b]]){
+$(prefix+'Grade').textContent=res.grade??'—';$(prefix+'Score').textContent=res.score?res.score+' / 100':'No numeric grade';
+$(prefix+'Status').textContent=res.status.replaceAll('_',' ')+(res.confidence?' · confidence: '+res.confidence:'');
+const bars=$(prefix+'Bars');bars.replaceChildren();
+if(res.values)for(const [key,value] of Object.entries(res.values)){const section=document.createElement('div');section.className='row';const left=document.createElement('span');left.textContent=key.replaceAll('_',' ');const right=document.createElement('strong');right.textContent=value.toFixed(1)+'%';section.append(left,right);bars.append(section)}
+}
+const diff=$('diff');diff.replaceChildren();
+for(const key of Object.keys(policies['research-0.1'])){const row=document.createElement('tr');[key.replaceAll('_',' '),a.values?.[key]?.toFixed(2)??'—',(policies['research-0.1'][key]*100)+'%',(policies['research-0.2'][key]*100)+'%'].forEach(t=>{const cell=document.createElement('td');cell.textContent=t;row.append(cell)});diff.append(row)}
+$('explain').textContent=a.status!=='graded'?'The snapshot is not gradable under either policy: '+a.status.replaceAll('_',' ')+'.':a.score===b.score?'Both experimental policies produce the same score for this evidence snapshot.':'Hypothetical score change: '+(Number(b.score)-Number(a.score)).toFixed(2)+' points. This is a sensitivity comparison, not a retroactive revision to the evidence or audit history.';
+}
+function events(){
+const c=cases.find(x=>x.id===$('case').value),s=$('snapshot');s.replaceChildren();if(!c)return;
+c.events.forEach((e,i)=>{const opt=document.createElement('option');opt.value=String(i);opt.textContent='#'+(i+1)+' '+e.kind.replaceAll('_',' ');s.append(opt)});s.value=String(c.events.length-1);render();
+}
+async function init(){
+const response=await fetch('/research/workscore_fixtures_v0.1.json',{cache:'no-store'});if(!response.ok)throw Error('Fixture file unavailable');
+const data=await response.json();if(data.schema!=='you-paid-workscore-fixtures-v0.1'||!Array.isArray(data.cases))throw Error('Fixture schema mismatch');
+cases=data.cases;const select=$('case');select.replaceChildren();
+cases.forEach(c=>{const opt=document.createElement('option');opt.value=c.id;opt.textContent=c.id+' · '+c.note;select.append(opt)});
+$('case').addEventListener('change',events);$('snapshot').addEventListener('change',render);events();
+}
+init().catch(e=>{$('explain').textContent='Unable to load fictional fixtures: '+e.message});
+</script></body></html>
