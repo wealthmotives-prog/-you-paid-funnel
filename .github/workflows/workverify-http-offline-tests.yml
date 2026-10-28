@@ -12,6 +12,8 @@ on:
       - 'tests/test_workscore_shared_fixtures.py'
       - 'tests/test_workscore_compare_lab.py'
       - 'tests/test_evidence_intake_gate_lab.py'
+      - 'tests/test_evidence_upload_hard_pause.py'
+      - 'supabase/migrations/20261028_evidence_upload_hard_pause.sql'
       - 'research/evidence_intake_gate_lab.py'
       - 'workscore-compare-lab.html'
       - 'research/workscore_fixtures_v0.1.json'
@@ -52,3 +54,4 @@ jobs:
           python -m unittest discover -s tests -p 'test_workscore_shared_fixtures.py' -v
           python -m unittest discover -s tests -p 'test_workscore_compare_lab.py' -v
           python -m unittest discover -s tests -p 'test_evidence_intake_gate_lab.py' -v
+          python -m unittest discover -s tests -p 'test_evidence_upload_hard_pause.py' -v
