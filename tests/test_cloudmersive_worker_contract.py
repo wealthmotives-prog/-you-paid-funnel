@@ -22,6 +22,8 @@ class CloudmersiveWorkerChecks(unittest.TestCase):
                        'digest!==artifact.content_hash','AbortSignal.timeout(20000)',
                        'https://api.cloudmersive.com/virus/scan/file'):
             self.assertIn(marker,s)
+        self.assertIn('const ENGINEERING_RELEASE_APPROVED = false;',s)
+        self.assertIn('if(!ENGINEERING_RELEASE_APPROVED ||',s)
         self.assertNotIn('createSignedUrl(',s)
         self.assertNotIn('upload(',s)
     @unittest.skipUnless(shutil.which("node"),"Requires node")
