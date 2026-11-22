@@ -19,6 +19,8 @@ on:
       - 'tests/test_pilot_evidence_authorization_lab.py'
       - 'tests/test_evidence_scan_receipt_lab.py'
       - 'tests/test_cloudmersive_worker_contract.py'
+      - 'tests/test_cloudmersive_synthetic_probe.py'
+      - 'supabase/functions/cloudmersive-synthetic-probe/index.ts'
       - 'supabase/functions/evidence-cloudmersive-scanner/index.ts'
       - 'research/evidence_scan_receipt_lab.py'
       - 'research/pilot_evidence_authorization_lab.py'
@@ -73,3 +75,4 @@ jobs:
           python -m unittest discover -s tests -p 'test_pilot_evidence_authorization_lab.py' -v
           python -m unittest discover -s tests -p 'test_evidence_scan_receipt_lab.py' -v
           python -m unittest discover -s tests -p 'test_cloudmersive_worker_contract.py' -v
+          python -m unittest discover -s tests -p 'test_cloudmersive_synthetic_probe.py' -v
