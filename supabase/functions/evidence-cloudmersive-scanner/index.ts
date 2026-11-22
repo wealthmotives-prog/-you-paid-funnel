@@ -19,6 +19,26 @@ function signature(bytes:Uint8Array):string|null {
  if(bytes.length>=3&&bytes[0]===255&&bytes[1]===216&&bytes[2]===255)return "jpg";
  return null;
 }
+// Enforce the response limit while streaming; Content-Length alone is untrusted.
+async function boundedJson(response:Response,maxBytes:number):Promise<unknown> {
+ if(!response.body)throw new Error("missing_response_body");
+ const reader=response.body.getReader();
+ const chunks:Uint8Array[]=[];let total=0;
+ try {
+  while(true){
+   const {done,value}=await reader.read();
+   if(done)break;
+   total+=value.byteLength;
+   if(total>maxBytes)throw new Error("response_too_large");
+   chunks.push(value);
+  }
+ }catch(error){await reader.cancel().catch(()=>{});throw error;}
+ finally{reader.releaseLock();}
+ if(total===0)throw new Error("empty_scan_response");
+ const buffer=new Uint8Array(total);let offset=0;
+ for(const part of chunks){buffer.set(part,offset);offset+=part.byteLength;}
+ return JSON.parse(new TextDecoder("utf-8",{fatal:true}).decode(buffer));
+}
 function outcome(payload:unknown):"clean"|"infected"|"indeterminate" {
  if(!payload||typeof payload!=="object"||Array.isArray(payload))return "indeterminate";
  const p=payload as Record<string,unknown>;
@@ -79,9 +99,10 @@ Deno.serve(async(req:Request)=>{
   try {
    const response=await fetch(ENDPOINT,{method:"POST",headers:{"Apikey":vendorKey},
     body:form,signal:AbortSignal.timeout(20000),redirect:"error"});
-   if(response.ok&&Number(response.headers.get("content-length")||0)<=16384) {
-    const body=await response.text();
-    if(body.length<=16384)verdict=outcome(JSON.parse(body));
+   if(response.ok){
+    const declared=Number(response.headers.get("content-length")||0);
+    if(Number.isFinite(declared)&&declared>=0&&declared<=16384)
+      verdict=outcome(await boundedJson(response,16384));
    }
   }catch{verdict="indeterminate";}
   // Store a scan outcome only; keep ALL evidence quarantined. Forensic review required.
