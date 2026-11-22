@@ -3,6 +3,8 @@
 // A clean vendor response records an inspection signal; NEVER approves/release a file.
 import { createClient } from "npm:@supabase/supabase-js@2";
 const BUCKET = "you-paid-work-evidence";
+// Explicit engineering hold: must be removed by reviewed release commit after E2E QA.
+const ENGINEERING_RELEASE_APPROVED = false;
 const ENDPOINT = "https://api.cloudmersive.com/virus/scan/file";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const HEX = /^[a-f0-9]{64}$/;
@@ -27,7 +29,7 @@ function outcome(payload:unknown):"clean"|"infected"|"indeterminate" {
  return "indeterminate";
 }
 Deno.serve(async(req:Request)=>{
- if(Deno.env.get("YOU_PAID_CLOUDMERSIVE_SCANNER_ENABLED")!=="true")
+ if(!ENGINEERING_RELEASE_APPROVED || Deno.env.get("YOU_PAID_CLOUDMERSIVE_SCANNER_ENABLED")!=="true")
    return reply(503,{error:"scanner_not_enabled"});
  if(req.method!=="POST")return reply(405,{error:"method_not_allowed"});
  const serviceKey=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"";
