@@ -1,5 +1,5 @@
 // You Paid / Cloudmersive quarantined-file scanner: STAGED SOURCE ONLY.
-// No deployment and no direct member upload enablement. Service-role-only invocation.
+// Deployed in engineering-locked mode; no member upload enablement. Service-role-only invocation.
 // A clean vendor response records an inspection signal; NEVER approves/release a file.
 import { createClient } from "npm:@supabase/supabase-js@2";
 const BUCKET = "you-paid-work-evidence";
