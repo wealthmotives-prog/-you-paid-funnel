@@ -26,6 +26,10 @@ on:
       - 'tests/pilot_consent_policy.test.ts'
       - 'supabase/functions/_shared/pilot_consent_policy.ts'
       - 'supabase/functions/staging-pilot-consent/index.ts'
+      - 'tests/test_staging_evidence_upload_service.py'
+      - 'tests/evidence_upload_policy.test.ts'
+      - 'supabase/functions/_shared/evidence_upload_policy.ts'
+      - 'supabase/functions/staging-evidence-upload/index.ts'
       - 'supabase/functions/cloudmersive-synthetic-probe/index.ts'
       - 'supabase/functions/evidence-cloudmersive-scanner/index.ts'
       - 'research/evidence_scan_receipt_lab.py'
@@ -87,3 +91,4 @@ jobs:
           python -m unittest discover -s tests -p 'test_cloudmersive_worker_contract.py' -v
           python -m unittest discover -s tests -p 'test_cloudmersive_synthetic_probe.py' -v
           python -m unittest discover -s tests -p 'test_staging_pilot_consent_service.py' -v
+          python -m unittest discover -s tests -p 'test_staging_evidence_upload_service.py' -v
