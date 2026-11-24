@@ -22,6 +22,10 @@ on:
       - 'tests/test_evidence_scan_receipt_lab.py'
       - 'tests/test_cloudmersive_worker_contract.py'
       - 'tests/test_cloudmersive_synthetic_probe.py'
+      - 'tests/test_staging_pilot_consent_service.py'
+      - 'tests/pilot_consent_policy.test.ts'
+      - 'supabase/functions/_shared/pilot_consent_policy.ts'
+      - 'supabase/functions/staging-pilot-consent/index.ts'
       - 'supabase/functions/cloudmersive-synthetic-probe/index.ts'
       - 'supabase/functions/evidence-cloudmersive-scanner/index.ts'
       - 'research/evidence_scan_receipt_lab.py'
@@ -59,6 +63,9 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
       - name: Verify deterministic offline security assertions
         run: |
           python -m unittest discover -s tests -p 'test_workverify_http_smoke_offline.py' -v
@@ -79,3 +86,4 @@ jobs:
           python -m unittest discover -s tests -p 'test_evidence_scan_receipt_lab.py' -v
           python -m unittest discover -s tests -p 'test_cloudmersive_worker_contract.py' -v
           python -m unittest discover -s tests -p 'test_cloudmersive_synthetic_probe.py' -v
+          python -m unittest discover -s tests -p 'test_staging_pilot_consent_service.py' -v

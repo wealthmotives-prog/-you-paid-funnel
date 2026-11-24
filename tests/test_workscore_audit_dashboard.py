@@ -6,8 +6,12 @@ ROOT=Path(__file__).resolve().parents[1]
 class AuditDashboardChecks(unittest.TestCase):
     def test_dashboard_is_fictional_only(self):
         s=(ROOT/'workscore-audit-lab.html').read_text(encoding='utf-8')
-        for marker in ('noindex,nofollow','All accounts and evidence below are fictional','Furnishing blocked','research-0.1','evidence_corrected','manual_review'):
+        for marker in ('noindex,nofollow','All accounts and evidence below are fictional','Furnishing blocked','research-0.1','manual_review'):
             self.assertIn(marker,s)
+        # Correction events now live in the shared fictional fixture the dashboard loads.
+        self.assertIn('/research/workscore_fixtures_v0.1.json',s)
+        fixture=(ROOT/'research/workscore_fixtures_v0.1.json').read_text(encoding='utf-8')
+        self.assertIn('evidence_corrected',fixture)
     def test_dashboard_has_no_live_integration(self):
         s=(ROOT/'workscore-audit-lab.html').read_text(encoding='utf-8').lower()
         for forbidden in ('supabase-js','stripe','xmlhttprequest','localstorage','sessionstorage'):
