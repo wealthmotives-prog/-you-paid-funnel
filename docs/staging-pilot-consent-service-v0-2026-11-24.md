@@ -106,7 +106,7 @@ Build the server-mediated quarantined upload Edge Function (consent check → si
 
 ## Deployment
 - `staging-pilot-consent` on staging: **version 3**, bundle `7b367c7b12e43dd0ac348d0af9f8399c7e2ceb84f4e2c3d42240d86f000ddef2`, verify_jwt=true. Read back via the management API; deployed `index.ts` and `_shared/pilot_consent_policy.ts` match repo files (sha256 `ce9b6d5d…c666` and `0b608050…3b71`).
-- **Discrepancy:** Claude deployed v1 (14:31 PT) and then v3. A **v2 was deployed by another party** in between. Its source was not inspected before being superseded. Owner/reviewer should confirm who deployed v2 and whether anything in it needs preserving.
+- **Discrepancy:** Claude deployed v1 (2026-11-24 19:31 UTC) and v3 (21:51 UTC). A **v2 was deployed by another party** in between. Its source was not inspected before being superseded. Owner/reviewer should confirm who deployed v2 and whether anything in it needs preserving.
 
 ## Tests
 | ID | Expected | Observed | Result |
