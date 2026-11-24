@@ -1,7 +1,7 @@
 # Milestone: staging pilot consent service v0 — 2026-11-24
 
 - **Date/agent/session:** 2026-11-24, Claude (Opus 5.5), Claude Code session `session_013NTyFKsbEV3gm3ZftoLffv`
-- **Status:** COMMITTED + PUSHED (PR #1, draft) · CI PASS · DEPLOYED to staging only (`staging-pilot-consent` v1, verify_jwt=true) · fail-closed gate TESTED live · consent paths NOT yet tested live (gate intentionally off).
+- **Status:** COMMITTED + PUSHED (PR #1, draft) · CI PASS · DEPLOYED to staging only (`staging-pilot-consent` v1, verify_jwt=true) · fail-closed gate and full consent lifecycle TESTED live on staging with two synthetic anonymous members (2026-11-24 20:23 UTC). VERIFIED by DB read-back. Not release-approved.
 
 ## Objective and initial-state evidence
 Supply the first missing dependency in the member chain (member → **versioned consent** → upload → scan → operator review): a server-mediated path for members to grant, check and revoke consent in `public.pilot_evidence_consents`, which has no member grants by design.
@@ -46,7 +46,30 @@ Local branch `staging/pilot-consent-service-v0`, based on `main` @ `5722dbb`. No
 | LIVE-03 anon JWT grant, gate unset | 503, no write | 503 staging_consent_not_enabled | PASS |
 | LIVE-04 anon JWT GET, gate unset | 503 | 503 staging_consent_not_enabled | PASS |
 | Post-test consent rows | 0 | 0 | PASS |
-| Live grant/status/revoke, member A vs B isolation, service key rejected | — | blocked: gate secret unset; no synthetic member sessions | INCONCLUSIVE |
+| LIVE-05 anon key as member, gate ON | 401 | 401 invalid_session | PASS |
+| C-01 A status, no consent | 200 absent | 200 | PASS |
+| C-02 grant without affirmative | 422 | 422 affirmative_consent_required | PASS |
+| C-03 grant with forged user_id (B's id) | 422 | 422 user_id_must_come_from_session | PASS |
+| C-04 outdated consent version | 422 | 422 consent_version_mismatch | PASS |
+| C-05 disallowed scope | 422 | 422 scope_not_allowed | PASS |
+| C-06 valid grant | 201 created | 201, 90-day expiry | PASS |
+| C-07 repeat grant | 200 created:false, same id | 200, same id | PASS |
+| C-08 A status after grant | 200 | 200 | PASS |
+| C-09 B status (isolation) | 200 absent | 200 | PASS |
+| C-10 B revoke cannot affect A | revoked [] | revoked [] | PASS |
+| C-11 A status after B revoke | 200 | 200 | PASS |
+| C-12 A direct REST SELECT on consent table | denied | 403 (42501) | PASS |
+| C-13 A direct REST INSERT on consent table | denied | 403 (42501) | PASS |
+| C-14 invalid JSON | 400 | 400 | PASS |
+| C-15 5 KB body | 413 | 413 | PASS |
+| C-16 unknown action | 400 | 400 | PASS |
+| C-17 A revoke | revoked [A's id] | revoked [7f08f1c1…] | PASS |
+| C-18 A status after revoke | 200 | 200 | PASS |
+| DB read-back | 1 row, owner A, scope upload only, revoked ≥ granted, 0 rows for B | exactly that | PASS |
+| Service-role key rejected as member bearer | 401 | not run (key never handled by Claude); covered by static test | INCONCLUSIVE |
+
+Synthetic test identities (staging, anonymous, no PII): member A `f5330ee2-c660-49e6-8aa2-58cf5ec8ea6d`, member B `508fdbc1-6bcf-493a-8d1e-5d0ae79f276d`.
+Note: C-08/C-11/C-18 per-scope reasons were truncated in the capture. Scope semantics are covered by CON-11 and the DB scope array.
 
 ## Rollback
 Unreleased: delete the branch. If deployed to staging: `supabase functions delete staging-pilot-consent --project-ref rzeodkcvljukaaczeibe`, or unset `YOU_PAID_STAGING_CONSENT_ENABLED` (the function fails closed with 503). No schema changes need reverting.
@@ -60,13 +83,12 @@ Unreleased: delete the branch. If deployed to staging: `supabase functions delet
 - GitHub CI: every `main` run since 2026-10-28 has failed at "Verify deterministic offline security assertions". This branch's fix turns it green.
 
 ## Unresolved blockers
-1. Staging secret `YOU_PAID_STAGING_CONSENT_ENABLED=true` must be set by the owner. Claude's attempt to request it was blocked by session policy.
-2. Two synthetic member sessions are needed for live isolation tests. Creating test accounts or signing in requires owner approval or owner-run sign-in.
-3. Vercel not yet inspected.
+1. Vercel team access pending owner approval.
+2. Backlog: before any real pilot, the consent service must reject anonymous sessions (`is_anonymous`) and require a verified identity. Anonymous sign-ins on staging are enabled **for synthetic testing only**.
 4. Deployed functions named in the master context (`capture-funnel`, `create-founder-checkout`, `stripe-founder-webhook`, `workverify-concurrency-lab`, `employer-confirmation-staging`, `evidence-staging-fixture`) have **no source in the repo**. The repo only has `employer-confirmation`. Stripe webhook source is not version-controlled here.
 
 ## Required owner decision
-Set `YOU_PAID_STAGING_CONSENT_ENABLED=true` on staging only. Approve creating two synthetic staging test accounts. Decide whether the six undocumented production function sources should be exported to version control. The repo is **public**, so a private repo may be preferable.
+None for this milestone. Separately pending: a production fix approval (tracked privately in the project) and the Vercel team grant.
 
 ## Next safe engineering task
-Build a staging-only member page (`staging/member.html`, pinned to the staging ref with the staging publishable key) that signs in a synthetic user and calls this service. After that, build the server-mediated upload function that calls `evaluateConsent(..., "upload_synthetic_evidence")` before any storage write.
+Build the server-mediated quarantined upload Edge Function (consent check → size/magic validation → server-owned path → artifact + job → reconciliation), then a staging-only member page (`staging/member.html`, pinned to the staging ref with the staging publishable key) that signs in a synthetic user and calls this service. After that, build the server-mediated upload function that calls `evaluateConsent(..., "upload_synthetic_evidence")` before any storage write.
