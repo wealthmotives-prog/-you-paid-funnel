@@ -71,19 +71,24 @@ export function isSyntheticTestIdentity(user: Identity): boolean {
 
 /**
  * Identity gate for granting consent or uploading evidence.
- * - Verified (non-anonymous) accounts pass.
- * - Anonymous sessions are refused unless server-marked as synthetic test accounts, and then only for synthetic-only scopes.
+ * - Synthetic-only scopes (everything that exists today) require the server-set test marker on the account,
+ *   whether the session is anonymous or a verified email account. An ordinary staging sign-up can do nothing.
+ * - Any future non-synthetic (real-document) scope requires a verified, non-anonymous identity.
  * - An unknown anonymity state is refused.
  */
 export function identityAllowsScopes(user: Identity, scopes: readonly string[]):
   { ok: true; synthetic: boolean } | { ok: false; reason: string } {
   if (!user || !UUID.test(user.id)) return { ok: false, reason: "invalid_user" };
   if (typeof user.is_anonymous !== "boolean") return { ok: false, reason: "identity_state_unknown" };
-  if (!user.is_anonymous) return { ok: true, synthetic: false };
-  if (!isSyntheticTestIdentity(user)) return { ok: false, reason: "anonymous_session_not_permitted" };
-  if (scopes.length === 0 || scopes.some((s) => !SYNTHETIC_ONLY_SCOPES.includes(s)))
-    return { ok: false, reason: "scope_requires_verified_identity" };
-  return { ok: true, synthetic: true };
+  if (scopes.length === 0) return { ok: false, reason: "scope_required" };
+  const marked = user.app_metadata?.[SYNTHETIC_TEST_MARKER] === true;
+  const syntheticOnly = scopes.every((s) => SYNTHETIC_ONLY_SCOPES.includes(s));
+  if (syntheticOnly) {
+    if (marked) return { ok: true, synthetic: true };
+    return { ok: false, reason: user.is_anonymous ? "anonymous_session_not_permitted" : "synthetic_test_marker_required" };
+  }
+  if (user.is_anonymous) return { ok: false, reason: "scope_requires_verified_identity" };
+  return { ok: true, synthetic: false };
 }
 
 /** Validate a grant request body. Scope list must be non-empty, known, and de-duplicated. */

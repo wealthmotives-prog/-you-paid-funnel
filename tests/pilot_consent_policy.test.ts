@@ -90,8 +90,11 @@ test("CON-25 row without recorded text hash denies", () => {
 
 // --- Review item 1: anonymous identity gate -------------------------------------------------------
 const SYN = ["upload_synthetic_evidence"];
-test("CON-26 verified (non-anonymous) account passes", () =>
-  assert.deepEqual(identityAllowsScopes({ id: A, is_anonymous: false }, SYN), { ok: true, synthetic: false }));
+test("CON-26 verified account WITHOUT server marker is refused synthetic scopes (security review item 2)", () => {
+  assert.deepEqual(identityAllowsScopes({ id: A, is_anonymous: false }, SYN), { ok: false, reason: "synthetic_test_marker_required" });
+  assert.deepEqual(identityAllowsScopes({ id: A, is_anonymous: false, app_metadata: { provider: "email" } }, SYN),
+    { ok: false, reason: "synthetic_test_marker_required" });
+});
 test("CON-27 plain anonymous session is rejected", () =>
   assert.deepEqual(identityAllowsScopes({ id: A, is_anonymous: true, app_metadata: {} }, SYN),
     { ok: false, reason: "anonymous_session_not_permitted" }));
@@ -106,10 +109,25 @@ test("CON-29 server-marked synthetic test account passes for synthetic-only scop
   assert.equal(isSyntheticTestIdentity(u), true);
   assert.deepEqual(identityAllowsScopes(u, SYN), { ok: true, synthetic: true });
 });
-test("CON-30 synthetic test account is refused any non-synthetic scope", () =>
+test("CON-30 marked anonymous account is refused any non-synthetic scope (and mixed lists)", () => {
   assert.deepEqual(identityAllowsScopes({ id: A, is_anonymous: true, app_metadata: { yp_synthetic_test: true } },
-    ["upload_real_evidence"]), { ok: false, reason: "scope_requires_verified_identity" }));
+    ["upload_real_evidence"]), { ok: false, reason: "scope_requires_verified_identity" });
+  assert.deepEqual(identityAllowsScopes({ id: A, is_anonymous: true, app_metadata: { yp_synthetic_test: true } },
+    ["upload_synthetic_evidence", "upload_real_evidence"]), { ok: false, reason: "scope_requires_verified_identity" });
+});
 test("CON-31 unknown anonymity state is refused", () =>
   assert.deepEqual(identityAllowsScopes({ id: A }, SYN), { ok: false, reason: "identity_state_unknown" }));
-test("CON-32 marker on a verified account does not change anything", () =>
-  assert.equal(isSyntheticTestIdentity({ id: A, is_anonymous: false, app_metadata: { yp_synthetic_test: true } }), false));
+test("CON-32 server-marked verified account passes synthetic scopes", () =>
+  assert.deepEqual(identityAllowsScopes({ id: A, is_anonymous: false, app_metadata: { yp_synthetic_test: true } }, SYN),
+    { ok: true, synthetic: true }));
+test("CON-33 future real-document scope: verified passes, anonymous (even marked) refused", () => {
+  assert.deepEqual(identityAllowsScopes({ id: A, is_anonymous: false }, ["upload_real_evidence"]), { ok: true, synthetic: false });
+  assert.deepEqual(identityAllowsScopes({ id: A, is_anonymous: true, app_metadata: { yp_synthetic_test: true } }, ["upload_real_evidence"]),
+    { ok: false, reason: "scope_requires_verified_identity" });
+});
+test("CON-34 empty scope list is refused", () =>
+  assert.deepEqual(identityAllowsScopes({ id: A, is_anonymous: false, app_metadata: { yp_synthetic_test: true } }, []),
+    { ok: false, reason: "scope_required" }));
+test("CON-35 user-writable metadata marker never counts", () =>
+  assert.deepEqual(identityAllowsScopes({ id: A, is_anonymous: false, app_metadata: {}, user_metadata: { yp_synthetic_test: true } } as never, SYN),
+    { ok: false, reason: "synthetic_test_marker_required" }));
