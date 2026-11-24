@@ -62,6 +62,15 @@ class StagingEvidenceUploadTests(unittest.TestCase):
         for forbidden in ("drop table", "delete from", "truncate", "update "):
             self.assertNotIn(forbidden, sql.lower().split("-- rollback")[0])
 
+    def test_cleanup_runbook_is_scoped_and_guarded(self):
+        rb = (ROOT / "docs/staging-synthetic-upload-cleanup-runbook.md").read_text()
+        self.assertIn("rzeodkcvljukaaczeibe", rb)
+        self.assertIn("Never run any step against production", rb)
+        self.assertGreaterEqual(rb.count("metadata->>'intake' = 'staging-evidence-upload-v0'"), 3)
+        self.assertIn("(u.raw_app_meta_data->>'yp_synthetic_test') = 'true'", rb)
+        self.assertIn("not exists (select 1 from public.pilot_evidence_review_events", rb)
+        self.assertIn("never with `delete from storage.objects`", rb)
+
     def test_production_locks_and_pauses_untouched(self):
         scanner = (ROOT / "supabase/functions/evidence-cloudmersive-scanner/index.ts").read_text()
         self.assertIn("const ENGINEERING_RELEASE_APPROVED = false;", scanner)
