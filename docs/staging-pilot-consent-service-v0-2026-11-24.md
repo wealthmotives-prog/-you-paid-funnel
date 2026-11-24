@@ -1,7 +1,7 @@
 # Milestone: staging pilot consent service v0 — 2026-11-24
 
 - **Date/agent/session:** 2026-11-24, Claude (Opus 5.5), Claude Code session `session_013NTyFKsbEV3gm3ZftoLffv`
-- **Status:** COMMITTED (local branch only). Not pushed, not deployed, not tested against live staging.
+- **Status:** COMMITTED + PUSHED (PR #1, draft) · CI PASS · DEPLOYED to staging only (`staging-pilot-consent` v1, verify_jwt=true) · fail-closed gate TESTED live · consent paths NOT yet tested live (gate intentionally off).
 
 ## Objective and initial-state evidence
 Supply the first missing dependency in the member chain (member → **versioned consent** → upload → scan → operator review): a server-mediated path for members to grant, check and revoke consent in `public.pilot_evidence_consents`, which has no member grants by design.
@@ -40,19 +40,33 @@ Local branch `staging/pilot-consent-service-v0`, based on `main` @ `5722dbb`. No
 | CON-01…17 (node --test) | all deny/allow cases as specified | 17/17 pass | PASS (local) |
 | Static guardrails (7) | gates, identity, isolation, locks intact | 7/7 pass | PASS (local) |
 | Full offline suite | no regressions | 116 passed, 0 failed | PASS (local) |
-| Live staging HTTP: 401 no session, 401 service key as bearer, 422 bad grant, A cannot see B | — | not run (no staging access) | INCONCLUSIVE |
+| GitHub Actions on branch | offline suite green | run 45470776283 success | PASS |
+| LIVE-01 no auth header | 401 | 401 UNAUTHORIZED_NO_AUTH_HEADER | PASS |
+| LIVE-02 malformed bearer | 401 | 401 UNAUTHORIZED_INVALID_JWT_FORMAT | PASS |
+| LIVE-03 anon JWT grant, gate unset | 503, no write | 503 staging_consent_not_enabled | PASS |
+| LIVE-04 anon JWT GET, gate unset | 503 | 503 staging_consent_not_enabled | PASS |
+| Post-test consent rows | 0 | 0 | PASS |
+| Live grant/status/revoke, member A vs B isolation, service key rejected | — | blocked: gate secret unset; no synthetic member sessions | INCONCLUSIVE |
 
 ## Rollback
 Unreleased: delete the branch. If deployed to staging: `supabase functions delete staging-pilot-consent --project-ref rzeodkcvljukaaczeibe`, or unset `YOU_PAID_STAGING_CONSENT_ENABLED` (the function fails closed with 503). No schema changes need reverting.
 
+## Live infrastructure audit (2026-11-24, read-only)
+- Both projects ACTIVE_HEALTHY. Production `xknfxcyezchtypaisieu` (us-west-2), staging `rzeodkcvljukaaczeibe` (us-west-1).
+- Production Storage: `yp_evidence_upload_hard_pause` (RESTRICTIVE INSERT) and `yp_evidence_read_hard_pause` (RESTRICTIVE SELECT) present. Permissive owner policies also exist and are overridden by the restrictive ones. Bucket private, 10 MiB. Staging-only tables absent. No public table with RLS off.
+- Production functions (8) match the master context. `capture-funnel` and `stripe-founder-webhook` have verify_jwt=false, as expected for their role. The production scanner build hash equals staging's (`3eaa56ab…`), and the staging scanner source shows `ENGINEERING_RELEASE_APPROVED = false`.
+- Staging: same two hard pauses present. 4 synthetic objects in the evidence bucket; 4 auth users; 0 consent rows; 0 review events. `yp_staging_review_append_only` trigger enabled. `evidence-staging-fixture` v7 returns 410.
+- Staging advisors: 4× INFO "RLS enabled, no policy" (intended deny-by-default) and 1× WARN leaked-password protection disabled (dashboard setting; recommended on).
+- GitHub CI: every `main` run since 2026-10-28 has failed at "Verify deterministic offline security assertions". This branch's fix turns it green.
+
 ## Unresolved blockers
-1. No GitHub push or API access: the GitHub account isn't linked to this Claude session.
-2. No Supabase connector, so live staging and production state can't be re-verified.
-3. No Vercel connector, so deployments and domains can't be re-verified, and it's unknown whether a staging site exists.
+1. Staging secret `YOU_PAID_STAGING_CONSENT_ENABLED=true` must be set by the owner. Claude's attempt to request it was blocked by session policy.
+2. Two synthetic member sessions are needed for live isolation tests. Creating test accounts or signing in requires owner approval or owner-run sign-in.
+3. Vercel not yet inspected.
 4. Deployed functions named in the master context (`capture-funnel`, `create-founder-checkout`, `stripe-founder-webhook`, `workverify-concurrency-lab`, `employer-confirmation-staging`, `evidence-staging-fixture`) have **no source in the repo**. The repo only has `employer-confirmation`. Stripe webhook source is not version-controlled here.
 
 ## Required owner decision
-Connect GitHub, Supabase and Vercel to this session. Then authorize deploying this function to **staging only** and setting `YOU_PAID_STAGING_CONSENT_ENABLED=true` there.
+Set `YOU_PAID_STAGING_CONSENT_ENABLED=true` on staging only. Approve creating two synthetic staging test accounts. Decide whether the six undocumented production function sources should be exported to version control. The repo is **public**, so a private repo may be preferable.
 
 ## Next safe engineering task
 Build a staging-only member page (`staging/member.html`, pinned to the staging ref with the staging publishable key) that signs in a synthetic user and calls this service. After that, build the server-mediated upload function that calls `evaluateConsent(..., "upload_synthetic_evidence")` before any storage write.
