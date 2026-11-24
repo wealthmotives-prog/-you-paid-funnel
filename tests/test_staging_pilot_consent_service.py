@@ -49,6 +49,27 @@ class StagingConsentServiceTests(unittest.TestCase):
         self.assertIn("const ENGINEERING_RELEASE_APPROVED = false;", scanner)
         self.assertIn("const ALLOW_PROBE = false;", probe)
 
+    def test_grant_enforces_identity_gate_and_records_text_hash(self):
+        s = FN.read_text()
+        self.assertIn("identityAllowsScopes(user, v.scope)", s)
+        self.assertIn("consent_text_sha256: v.text_sha256", s)
+        self.assertIn("consent_text: doc.text", s)
+        # Revocation must never be blocked by the identity gate.
+        revoke = s.split('case "revoke"')[1].split("default:")[0]
+        self.assertNotIn("identityAllowsScopes", revoke)
+
+    def test_revocation_fails_closed_on_any_value(self):
+        p = POLICY.read_text()
+        self.assertIn("if (r.revoked_at !== null && r.revoked_at !== undefined) { lastReason = \"consent_revoked\"; continue; }", p)
+        self.assertNotIn("revoked <= now", p)
+
+    def test_text_hash_migration_is_additive_and_staging_only(self):
+        sql = (ROOT / "supabase/staging_migrations/20261124b_pilot_consent_text_hash.sql").read_text()
+        self.assertIn("STAGING ONLY", sql)
+        self.assertIn("add column if not exists consent_text_sha256", sql)
+        for forbidden in ("drop table", "truncate", "delete from", "grant "):
+            self.assertNotIn(forbidden, sql.lower().split("-- rollback")[0])
+
     def test_policy_pins_both_refs_distinctly(self):
         p = POLICY.read_text()
         self.assertIn('STAGING_PROJECT_REF = "rzeodkcvljukaaczeibe"', p)

@@ -93,3 +93,46 @@ None for this milestone. Separately pending: a production fix approval (tracked 
 
 ## Next safe engineering task
 Build the server-mediated quarantined upload Edge Function (consent check → size/magic validation → server-owned path → artifact + job → reconciliation), then a staging-only member page (`staging/member.html`, pinned to the staging ref with the staging publishable key) that signs in a synthetic user and calls this service. After that, build the server-mediated upload function that calls `evaluateConsent(..., "upload_synthetic_evidence")` before any storage write.
+
+---
+
+# Review-response revision (PR #1 review items 1–4), 2026-11-24
+
+## Changes
+1. **Anonymous sessions refused** for consent grants. `identityAllowsScopes()` allows a verified (non-anonymous) account, or an anonymous session **only** when the server has set `auth.users.raw_app_meta_data.yp_synthetic_test = true`, and then only for `SYNTHETIC_ONLY_SCOPES`. Users cannot write `app_metadata`. Setting `yp_synthetic_test` in user metadata at sign-up is ignored (tested live, V2-02/03). Any future real-document scope is excluded from `SYNTHETIC_ONLY_SCOPES`, so it automatically requires a verified identity. Revocation is never blocked by the identity gate. Unknown anonymity state is denied.
+2. **Fail-closed revocation.** Any non-null `revoked_at` (past, now, future, unparseable or empty) denies. The previous code allowed a future-dated revocation: demonstrated by running the old policy, which returned `{"allowed":true}` for `revoked_at=2099-01-01`. Regression tests CON-18…21 and live test V2-17.
+3. **Versioned consent text evidence.** `CONSENT_DOCUMENTS` holds the exact text per version (now `staging-pilot-evidence-consent-v2`) and its pinned SHA-256 `61009cfa547da4fd893e8df9095440727250546c980e3dabeb3f5c404ddc0e51`, verified by CON-22. `status` returns the text and hash for the member UI to display verbatim. `grant` must echo the hash, and the row stores `consent_text_sha256`. Rows with no or mismatched hash are denied (`consent_text_unverified`), so the old v1 row is inert. Additive staging migration `supabase/staging_migrations/20261124b_pilot_consent_text_hash.sql`, applied to `rzeodkcvljukaaczeibe` and absent from production.
+   **Member UI requirement:** render `consent_text` verbatim, require an explicit unchecked-by-default "I agree" control, and send `consent_version` and `consent_text_sha256` from the same `status` response.
+
+## Deployment
+- `staging-pilot-consent` on staging: **version 3**, bundle `7b367c7b12e43dd0ac348d0af9f8399c7e2ceb84f4e2c3d42240d86f000ddef2`, verify_jwt=true. Read back via the management API; deployed `index.ts` and `_shared/pilot_consent_policy.ts` match repo files (sha256 `ce9b6d5d…c666` and `0b608050…3b71`).
+- **Discrepancy:** Claude deployed v1 (14:31 PT) and then v3. A **v2 was deployed by another party** in between. Its source was not inspected before being superseded. Owner/reviewer should confirm who deployed v2 and whether anything in it needs preserving.
+
+## Tests
+| ID | Expected | Observed | Result |
+|---|---|---|---|
+| Node policy suite | 32 pass | 32/32 | PASS |
+| Full offline suite | no regressions | 119 passed | PASS |
+| Old-code regression proof | old policy allows 2099 revocation | `{"allowed":true}` | CONFIRMED BUG |
+| V2-01 status returns v2 text + hash, identity flags | 200 | 200, 845-char text, hash 61009cfa…, synthetic=true | PASS |
+| V2-02 unmarked anon C, self-asserted user_metadata marker | synthetic=false | synthetic=false | PASS |
+| V2-03 C grant | 403 anonymous_session_not_permitted | 403 | PASS |
+| V2-04 wrong text hash | 422 consent_text_mismatch | 422 | PASS |
+| V2-05 missing text hash | 422 consent_text_mismatch | 422 | PASS |
+| V2-06 old version v1 | 422 consent_version_mismatch | 422 | PASS |
+| V2-07 marked D valid grant | 201 with version + hash | 201 | PASS |
+| V2-08 repeat grant | 200 created:false | 200 same id | PASS |
+| V2-09 D status | upload allowed, operator_review not granted | as expected | PASS |
+| V2-10 E isolation | absent | absent | PASS |
+| V2-11 E revoke cannot affect D | [] | [] | PASS |
+| V2-12 unmarked C revoke still allowed | 200 [] | 200 [] | PASS |
+| V2-13 D revoke | [D's id] | [58ccb2e6…] | PASS |
+| V2-14 D after revoke | consent_revoked | consent_revoked (both scopes) | PASS |
+| V2-15/16 D direct REST select/insert | 403 | 403 / 403 | PASS |
+| V2-17 E row with revoked_at = 2099 (valid hash) | consent_revoked | consent_revoked | PASS |
+| DB read-back | D row: v2, hash 61009cfa…, source staging_synthetic_test_account; no C row | exactly that | PASS |
+
+Synthetic test identities (anonymous, staging): C `5e3dfd6c-9dc0-4b2c-9cd8-ccfd6f2a772c` (unmarked), D `2f9e33ba-462c-4aaa-97f1-c13ef94fedd5` (marked), E `152a563b-3138-4ba4-84e7-ec8df148d773` (marked). The regression row `fc007f7c…` is labelled `…:regression_future_revocation` in `consent_source`.
+
+## Rollback
+Redeploy the v1 source from commit `43c49d9`. Drop the column only if needed: `alter table public.pilot_evidence_consents drop column if exists consent_text_sha256;`.

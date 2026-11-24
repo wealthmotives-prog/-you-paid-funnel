@@ -1,11 +1,13 @@
 // You Paid staging pilot consent service. STAGING ONLY (rzeodkcvljukaaczeibe).
 // Members never write public.pilot_evidence_consents directly; this function is the only path.
 // Identity comes exclusively from the verified Supabase session JWT, never from the request body.
+// Anonymous sessions are refused unless the server has marked them as isolated synthetic test accounts.
 // Does NOT enable uploads, scanning, or release. Fails closed on every error.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import {
-  ALLOWED_SCOPES, CONSENT_PURPOSE, CURRENT_CONSENT_VERSION, type ConsentRow,
-  environmentIsStaging, evaluateConsent, expiryFor, validateGrantRequest,
+  ALLOWED_SCOPES, CONSENT_DOCUMENTS, CONSENT_PURPOSE, CONSENT_SOURCE_MEMBER, CONSENT_SOURCE_SYNTHETIC,
+  CURRENT_CONSENT_VERSION, type ConsentRow, environmentIsStaging, evaluateConsent, expiryFor,
+  identityAllowsScopes, isSyntheticTestIdentity, validateGrantRequest,
 } from "../_shared/pilot_consent_policy.ts";
 
 const MAX_BODY = 4096;
@@ -28,7 +30,8 @@ Deno.serve(async (req: Request) => {
   const admin = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
   const { data: auth, error: authError } = await admin.auth.getUser(jwt);
   if (authError || !auth?.user?.id) return reply(401, { error: "invalid_session" });
-  const userId = auth.user.id;
+  const user = auth.user;
+  const userId = user.id;
 
   let body: Record<string, unknown>;
   try {
@@ -43,7 +46,7 @@ Deno.serve(async (req: Request) => {
   const now = new Date();
   const loadOwn = async (): Promise<ConsentRow[]> => {
     const { data, error } = await admin.from("pilot_evidence_consents")
-      .select("id,user_id,purpose,consent_version,scope,granted_at,revoked_at,expires_at")
+      .select("id,user_id,purpose,consent_version,scope,granted_at,revoked_at,expires_at,consent_text_sha256")
       .eq("user_id", userId).eq("purpose", CONSENT_PURPOSE)
       .order("granted_at", { ascending: false }).limit(20);
     if (error) throw new Error("consent_read_failed");
@@ -57,12 +60,20 @@ Deno.serve(async (req: Request) => {
         const scopes = Object.fromEntries(
           ALLOWED_SCOPES.map((s) => [s, evaluateConsent(rows, userId, s, now)]),
         );
-        return reply(200, { purpose: CONSENT_PURPOSE, current_version: CURRENT_CONSENT_VERSION, scopes });
+        const doc = CONSENT_DOCUMENTS[CURRENT_CONSENT_VERSION];
+        return reply(200, {
+          purpose: CONSENT_PURPOSE, current_version: CURRENT_CONSENT_VERSION,
+          consent_text: doc.text, consent_text_sha256: doc.sha256,
+          identity: { anonymous: user.is_anonymous === true, synthetic_test_account: isSyntheticTestIdentity(user) },
+          scopes,
+        });
       }
       case "grant": {
         const { action: _a, ...grantBody } = body;
         const v = validateGrantRequest(grantBody);
         if (!v.ok) return reply(422, { error: v.reason });
+        const idGate = identityAllowsScopes(user, v.scope);
+        if (!idGate.ok) return reply(403, { error: idGate.reason });
         const rows = await loadOwn();
         // Idempotent: an active consent covering every requested scope is returned, not duplicated.
         const covering = v.scope.map((s) => evaluateConsent(rows, userId, s, now));
@@ -71,13 +82,17 @@ Deno.serve(async (req: Request) => {
           return reply(200, { consent_id: [...ids][0], created: false });
         const { data, error } = await admin.from("pilot_evidence_consents").insert({
           user_id: userId, purpose: CONSENT_PURPOSE, consent_version: v.version, scope: v.scope,
-          granted_at: now.toISOString(), expires_at: expiryFor(now), consent_source: "staging_member_portal",
-        }).select("id,expires_at").single();
+          consent_text_sha256: v.text_sha256, granted_at: now.toISOString(), expires_at: expiryFor(now),
+          consent_source: idGate.synthetic ? CONSENT_SOURCE_SYNTHETIC : CONSENT_SOURCE_MEMBER,
+        }).select("id,expires_at,consent_version,consent_text_sha256").single();
         if (error || !data) throw new Error("consent_write_failed");
-        return reply(201, { consent_id: data.id, expires_at: data.expires_at, created: true });
+        return reply(201, {
+          consent_id: data.id, expires_at: data.expires_at, consent_version: data.consent_version,
+          consent_text_sha256: data.consent_text_sha256, created: true,
+        });
       }
       case "revoke": {
-        // Revokes every active consent for this member; scoped strictly to the verified user.
+        // Withdrawal is never blocked by identity checks. Scoped strictly to the verified user.
         const { data, error } = await admin.from("pilot_evidence_consents")
           .update({ revoked_at: now.toISOString() })
           .eq("user_id", userId).eq("purpose", CONSENT_PURPOSE).is("revoked_at", null)
