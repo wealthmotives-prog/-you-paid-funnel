@@ -82,8 +82,9 @@ Unreleased: delete the branch. If deployed to staging: `supabase functions delet
 - Staging advisors: 4× INFO "RLS enabled, no policy" (intended deny-by-default) and 1× WARN leaked-password protection disabled (dashboard setting; recommended on).
 - GitHub CI: every `main` run since 2026-10-28 has failed at "Verify deterministic offline security assertions". This branch's fix turns it green.
 
+- Vercel (read-only, 2026-11-24): one project `you-paid` (`prj_twWeqc1SPxX512FHY2WFcEWVkGtG`, team `wealthmotives-6336`). Production = `main` @ `5722dbb` (`dpl_GWhnDXoTixgxASV542o2X8A35XV9`, READY). `joinyoupaid.com` redirects 308 to `www.joinyoupaid.com`; both verified. **There is no separate staging site.** Feature-branch pushes create Preview deployments (this branch: 3, all READY, none promoted). Vercel SSO protection covers all deployments except custom domains, so previews are team-only. Preview builds still serve the current `app.html`/`operator.html`, which point at the **production** Supabase project. Any staging page must hard-pin the staging ref and must not reuse those files.
+
 ## Unresolved blockers
-1. Vercel team access pending owner approval.
 2. Backlog: before any real pilot, the consent service must reject anonymous sessions (`is_anonymous`) and require a verified identity. Anonymous sign-ins on staging are enabled **for synthetic testing only**.
 4. Deployed functions named in the master context (`capture-funnel`, `create-founder-checkout`, `stripe-founder-webhook`, `workverify-concurrency-lab`, `employer-confirmation-staging`, `evidence-staging-fixture`) have **no source in the repo**. The repo only has `employer-confirmation`. Stripe webhook source is not version-controlled here.
 
