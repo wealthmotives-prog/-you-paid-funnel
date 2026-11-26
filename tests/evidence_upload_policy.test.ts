@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import {
-  checkHeaders, checkPdfBytes, MAX_UPLOAD_BYTES, objectPathFor, readBounded, sha256Hex, storageReferenceFor,
+  checkHeaders, checkPdfBytes, drainBody, MAX_UPLOAD_BYTES, objectPathFor, readBounded, sha256Hex, storageReferenceFor,
 } from "../supabase/functions/_shared/evidence_upload_policy.ts";
 
 const U = "11111111-1111-4111-8111-111111111111";
@@ -73,4 +73,23 @@ test("UP-13 bounded reader stops past the limit", async () => {
   const ok = new ReadableStream<Uint8Array>({ start(c) { c.enqueue(new Uint8Array(300)); c.enqueue(new Uint8Array(200)); c.close(); } });
   assert.equal((await readBounded(ok, 1000))?.length, 500);
   assert.equal((await readBounded(null, 1000))?.length, 0);
+});
+
+test("UP-14 drainBody consumes a small body completely", async () => {
+  const s = new ReadableStream<Uint8Array>({ start(c) { c.enqueue(new Uint8Array(300)); c.enqueue(new Uint8Array(200)); c.close(); } });
+  assert.equal(await drainBody(s, 1000), 500);
+  assert.equal(await drainBody(null, 1000), 0);
+});
+test("UP-15 drainBody stops past the cap and cancels the rest", async () => {
+  let cancelled = false;
+  const s = new ReadableStream<Uint8Array>({
+    pull(c) { c.enqueue(new Uint8Array(400)); }, cancel() { cancelled = true; },
+  });
+  const n = await drainBody(s, 1000);
+  assert.ok(n > 1000 && n <= 1400, String(n));
+  assert.equal(cancelled, true);
+});
+test("UP-16 drainBody never throws on an erroring stream", async () => {
+  const s = new ReadableStream<Uint8Array>({ start(c) { c.error(new Error("boom")); } });
+  assert.equal(await drainBody(s, 1000), 0);
 });

@@ -62,6 +62,16 @@ class StagingEvidenceUploadTests(unittest.TestCase):
         for forbidden in ("drop table", "delete from", "truncate", "update "):
             self.assertNotIn(forbidden, sql.lower().split("-- rollback")[0])
 
+    def test_every_pre_body_reply_drains_the_body(self):
+        s = FN.read_text()
+        self.assertIn("await drainBody(req.body, MAX_UPLOAD_BYTES)", s)
+        handler = s.split("Deno.serve(async (req: Request) => {", 1)[1]
+        helper_end = handler.index("};") + 2
+        before_body = handler[helper_end:handler.index("readBounded(req.body")]
+        self.assertNotIn("return reply(", before_body)
+        self.assertGreaterEqual(before_body.count("return early("), 8)
+        self.assertIn("return early(500, { error: \"upload_service_failed\" })", s)
+
     def test_cleanup_runbook_is_scoped_and_guarded(self):
         rb = (ROOT / "docs/staging-synthetic-upload-cleanup-runbook.md").read_text()
         self.assertIn("rzeodkcvljukaaczeibe", rb)

@@ -84,3 +84,29 @@ export async function readBounded(body: ReadableStream<Uint8Array> | null, max: 
   for (const c of chunks) { out.set(c, o); o += c.byteLength; }
   return out;
 }
+
+/**
+ * Consume (and discard) up to `max` bytes of a request body, then cancel the rest.
+ * The Supabase gateway does not deliver a response until the request body has been read, so every early
+ * rejection must drain the body first; otherwise a client sending > ~0.5 MiB hangs until timeout.
+ * Never throws. Returns the number of bytes discarded.
+ */
+export async function drainBody(body: ReadableStream<Uint8Array> | null, max: number): Promise<number> {
+  if (!body) return 0;
+  let reader: ReadableStreamDefaultReader<Uint8Array>;
+  try { reader = body.getReader(); } catch { return 0; }
+  let total = 0;
+  try {
+    while (total <= max) {
+      const { done, value } = await reader.read();
+      if (done) return total;
+      total += value.byteLength;
+    }
+    await reader.cancel().catch(() => {});
+    return total;
+  } catch {
+    return total;
+  } finally {
+    try { reader.releaseLock(); } catch { /* already released */ }
+  }
+}

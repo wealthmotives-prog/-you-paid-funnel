@@ -9,7 +9,7 @@ import {
   type ConsentRow, CONSENT_PURPOSE, environmentIsStaging, evaluateConsent, identityAllowsScopes,
 } from "../_shared/pilot_consent_policy.ts";
 import {
-  checkHeaders, checkPdfBytes, EVIDENCE_BUCKET, MAX_UPLOAD_BYTES, objectPathFor, readBounded,
+  checkHeaders, checkPdfBytes, drainBody, EVIDENCE_BUCKET, MAX_UPLOAD_BYTES, objectPathFor, readBounded,
   sha256Hex, storageReferenceFor, UPLOAD_SCOPE,
 } from "../_shared/evidence_upload_policy.ts";
 
@@ -18,24 +18,30 @@ const reply = (status: number, payload: Record<string, unknown>) =>
   Response.json(payload, { status, headers: { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" } });
 
 Deno.serve(async (req: Request) => {
+  // Every reply sent before the body has been read must drain it first (see drainBody).
+  let bodyRead = false;
+  const early = async (status: number, payload: Record<string, unknown>) => {
+    if (!bodyRead) { bodyRead = true; await drainBody(req.body, MAX_UPLOAD_BYTES); }
+    return reply(status, payload);
+  };
   const url = Deno.env.get("SUPABASE_URL") || "";
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
   if (!environmentIsStaging(url) || Deno.env.get("YOU_PAID_STAGING_UPLOAD_ENABLED") !== "true" || !serviceKey)
-    return reply(503, { error: "staging_upload_not_enabled" });
-  if (req.method !== "POST") return reply(405, { error: "method_not_allowed" });
+    return early(503, { error: "staging_upload_not_enabled" });
+  if (req.method !== "POST") return early(405, { error: "method_not_allowed" });
 
   const bearer = req.headers.get("authorization") || "";
   const jwt = bearer.startsWith("Bearer ") ? bearer.slice(7) : "";
-  if (!jwt || jwt === serviceKey) return reply(401, { error: "member_session_required" });
+  if (!jwt || jwt === serviceKey) return early(401, { error: "member_session_required" });
 
   const admin = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
   const { data: auth, error: authError } = await admin.auth.getUser(jwt);
-  if (authError || !auth?.user?.id) return reply(401, { error: "invalid_session" });
+  if (authError || !auth?.user?.id) return early(401, { error: "invalid_session" });
   const user = auth.user;
   const userId = user.id;
 
   const idGate = identityAllowsScopes(user, [UPLOAD_SCOPE]);
-  if (!idGate.ok) return reply(403, { error: idGate.reason });
+  if (!idGate.ok) return early(403, { error: idGate.reason });
 
   const employmentId = req.headers.get("x-employment-id");
   const hdr = checkHeaders({
@@ -43,7 +49,7 @@ Deno.serve(async (req: Request) => {
     contentLength: req.headers.get("content-length"),
     employmentId,
   });
-  if (!hdr.ok) return reply(hdr.status, { error: hdr.reason });
+  if (!hdr.ok) return early(hdr.status, { error: hdr.reason });
 
   const consentFor = async () => {
     const { data, error } = await admin.from("pilot_evidence_consents")
@@ -58,15 +64,16 @@ Deno.serve(async (req: Request) => {
   try {
     // 1) Consent before reading the body.
     const pre = await consentFor();
-    if (!pre.decision.allowed) return reply(403, { error: pre.decision.reason });
+    if (!pre.decision.allowed) return early(403, { error: pre.decision.reason });
 
     // 2) The employment record must belong to this member (also enforced by the composite FK).
     const { data: emp, error: empError } = await admin.from("employment_records")
       .select("id").eq("id", employmentId!).eq("user_id", userId).maybeSingle();
     if (empError) throw new Error("employment_read_failed");
-    if (!emp) return reply(404, { error: "employment_record_not_found" });
+    if (!emp) return early(404, { error: "employment_record_not_found" });
 
     // 3) Bounded read + real-content validation.
+    bodyRead = true;
     const bytes = await readBounded(req.body, MAX_UPLOAD_BYTES);
     if (bytes === null) return reply(413, { error: "file_too_large" });
     const pdf = checkPdfBytes(bytes);
@@ -138,6 +145,6 @@ Deno.serve(async (req: Request) => {
     });
   } catch (err) {
     console.error("staging-evidence-upload failure", err instanceof Error ? err.message : "unknown");
-    return reply(500, { error: "upload_service_failed" });
+    return early(500, { error: "upload_service_failed" });
   }
 });
