@@ -12,12 +12,15 @@ import {
   checkHeaders, checkPdfBytes, drainBody, EVIDENCE_BUCKET, MAX_UPLOAD_BYTES, objectPathFor, readBounded,
   sha256Hex, storageReferenceFor, UPLOAD_SCOPE,
 } from "../_shared/evidence_upload_policy.ts";
+import { duplicateDecision, type Job } from "../_shared/inspection_policy.ts";
+import { corsHeaders, preflight } from "../_shared/staging_http.ts";
 
 const INTAKE_VERSION = "staging-evidence-upload-v0";
-const reply = (status: number, payload: Record<string, unknown>) =>
-  Response.json(payload, { status, headers: { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" } });
-
 Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") return preflight(req);
+  const reply = (status: number, payload: Record<string, unknown>) =>
+    Response.json(payload, { status, headers: { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff",
+      ...corsHeaders(req.headers.get("origin")) } });
   // Every reply sent before the body has been read must drain it first (see drainBody).
   let bodyRead = false;
   const early = async (status: number, payload: Record<string, unknown>) => {
@@ -92,14 +95,16 @@ Deno.serve(async (req: Request) => {
       .eq("metadata->>intake", INTAKE_VERSION).limit(1).maybeSingle();
     if (dupError) throw new Error("duplicate_check_failed");
     if (dup) {
-      const { data: dj, error: djError } = await admin.from("evidence_inspection_jobs").select("id,state").eq("artifact_id", dup.id).maybeSingle();
+      const { data: dj, error: djError } = await admin.from("evidence_inspection_jobs")
+        .select("id,artifact_id,state,failure_code,attempts,updated_at").eq("artifact_id", dup.id).maybeSingle();
       if (djError) throw new Error("duplicate_job_check_failed");
-      // A prior partial intake (no job / flagged) must never read as success on retry.
-      if (!dj || dup.review_status === "reconciliation_required")
-        return reply(409, { error: "reconciliation_required", artifact_id: dup.id, job_state: dj?.state ?? "missing",
+      // Only a healthy prior intake may answer 200; failed/missing/rejected/flagged/retrying jobs answer 409.
+      const d = duplicateDecision({ id: dup.id, review_status: dup.review_status, content_hash: digest }, dj as Job | null);
+      if (d.status === 409)
+        return reply(409, { error: d.error, artifact_id: dup.id, job_state: d.job_state, failure_code: d.failure_code,
           duplicate: true, recorded: false });
-      return reply(200, { artifact_id: dup.id, job_id: dj.id, job_state: dj.state,
-        sha256: digest, duplicate: true, quarantined: true, scanned: false, approved: false });
+      return reply(200, { artifact_id: dup.id, job_id: dj!.id, job_state: d.job_state, failure_code: d.failure_code,
+        sha256: digest, duplicate: true, quarantined: true, scanned: d.failure_code === "awaiting_human_review", approved: false });
     }
 
     // 6) Server-owned path; never client-chosen; never overwrite.

@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'; connect-src https://rzeodkcvljukaaczeibe.supabase.co; base-uri 'none'; form-action 'none'">
+<title>You Paid — STAGING member evidence (synthetic only)</title>
+<style>
+ body{font:15px/1.5 system-ui,sans-serif;max-width:760px;margin:2rem auto;padding:0 1rem;color:#1d1d1f}
+ .banner{background:#fff3cd;border:1px solid #e0b100;padding:.75rem 1rem;border-radius:8px;margin-bottom:1.5rem}
+ section{border:1px solid #ddd;border-radius:8px;padding:1rem;margin:1rem 0}
+ pre{white-space:pre-wrap;background:#f6f6f6;padding:.75rem;border-radius:6px}
+ button{padding:.45rem .9rem;margin:.25rem .25rem .25rem 0;cursor:pointer}
+ .out{font-family:ui-monospace,monospace;font-size:13px;white-space:pre-wrap;color:#333}
+ label{display:block;margin:.5rem 0}
+</style>
+</head>
+<body>
+<div class="banner"><strong>STAGING — synthetic testing only.</strong> Connected to staging project <code>rzeodkcvljukaaczeibe</code>.
+Upload <strong>fictional documents only</strong>. No real names, pay stubs, IDs or employer data. Not connected to production.</div>
+<h1>Member evidence (staging)</h1>
+
+<section>
+ <h2>1. Session</h2>
+ <button id="start">Start synthetic test session</button>
+ <button id="forget">Forget session</button>
+ <div class="out" id="session">No session.</div>
+ <p>A new session must be server-marked as a synthetic test account by an engineer before consent or upload will work.</p>
+</section>
+
+<section>
+ <h2>2. Consent</h2>
+ <button id="status">Load consent</button>
+ <pre id="consentText">(consent text loads from the server)</pre>
+ <div class="out" id="consentMeta"></div>
+ <label><input type="checkbox" id="agree"> I have read the consent text above and I agree.</label>
+ <button id="grant" disabled>Give consent</button>
+ <button id="revoke">Withdraw consent</button>
+ <div class="out" id="consentOut"></div>
+</section>
+
+<section>
+ <h2>3. Upload a fictional PDF</h2>
+ <button id="loadEmp">Load my (fictional) employment records</button>
+ <label>Employment record <select id="emp"></select></label>
+ <label>PDF (≤ 10 MiB) <input type="file" id="file" accept="application/pdf"></label>
+ <button id="upload">Upload to quarantine</button>
+ <div class="out" id="uploadOut"></div>
+</section>
+
+<script>
+"use strict";
+const BASE = "https://rzeodkcvljukaaczeibe.supabase.co";
+// Public (anon) client key for the STAGING project. Not a secret; grants nothing beyond RLS.
+const PUBLIC_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ6ZW9ka2N2bGp1a2FhY3plaWJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTU1Mjk0NzAsImV4cCI6MjExMTEwNTQ3MH0.1lLs5vmvaSuB9step4fO2giSbP6zzegECQqM2XzPAcg";
+const KEY = "yp_staging_member_session";
+const $ = (id) => document.getElementById(id);
+const show = (id, v) => { $(id).textContent = typeof v === "string" ? v : JSON.stringify(v, null, 2); };
+let session = null, consentDoc = null;
+try { session = JSON.parse(localStorage.getItem(KEY) || "null"); } catch { session = null; }
+const save = () => { try { session ? localStorage.setItem(KEY, JSON.stringify(session)) : localStorage.removeItem(KEY); } catch {} };
+const render = () => show("session", session ? "User id: " + session.user_id + "\nExpires: " + new Date(session.expires_at * 1000).toISOString() : "No session.");
+
+async function token() {
+  if (!session) throw new Error("Start a session first.");
+  if (Date.now() / 1000 > session.expires_at - 60) {
+    const r = await fetch(BASE + "/auth/v1/token?grant_type=refresh_token", { method: "POST",
+      headers: { "Content-Type": "application/json", apikey: PUBLIC_KEY }, body: JSON.stringify({ refresh_token: session.refresh_token }) });
+    const j = await r.json();
+    if (!r.ok) { session = null; save(); render(); throw new Error("Session expired; start a new one."); }
+    session = { user_id: j.user.id, access_token: j.access_token, refresh_token: j.refresh_token, expires_at: j.expires_at }; save(); render();
+  }
+  return session.access_token;
+}
+async function call(fn, body, extraHeaders) {
+  const t = await token();
+  const r = await fetch(BASE + "/functions/v1/" + fn, { method: "POST",
+    headers: { apikey: PUBLIC_KEY, Authorization: "Bearer " + t, ...(extraHeaders || { "Content-Type": "application/json" }) },
+    body: extraHeaders ? body : JSON.stringify(body) });
+  let j = null; try { j = await r.json(); } catch {}
+  return { status: r.status, body: j };
+}
+
+$("start").onclick = async () => {
+  const r = await fetch(BASE + "/auth/v1/signup", { method: "POST", headers: { "Content-Type": "application/json", apikey: PUBLIC_KEY },
+    body: JSON.stringify({ data: { yp_synthetic: "staging_member_page" } }) });
+  const j = await r.json();
+  if (!r.ok) return show("session", "Could not start session: " + (j.msg || r.status));
+  session = { user_id: j.user.id, access_token: j.access_token, refresh_token: j.refresh_token, expires_at: j.expires_at }; save(); render();
+};
+$("forget").onclick = () => { session = null; save(); render(); };
+$("status").onclick = async () => {
+  try {
+    const r = await call("staging-pilot-consent", { action: "status" });
+    if (r.status !== 200) return show("consentOut", r);
+    consentDoc = { version: r.body.current_version, sha256: r.body.consent_text_sha256, purpose: r.body.purpose };
+    show("consentText", r.body.consent_text);              // verbatim, as text (never HTML)
+    show("consentMeta", "Version: " + consentDoc.version + "\nText SHA-256: " + consentDoc.sha256 +
+      "\nTest account: " + r.body.identity.synthetic_test_account);
+    show("consentOut", r.body.scopes);
+    $("agree").checked = false; $("grant").disabled = true;
+  } catch (e) { show("consentOut", String(e.message || e)); }
+};
+$("agree").onchange = () => { $("grant").disabled = !($("agree").checked && consentDoc); };
+$("grant").onclick = async () => {
+  if (!$("agree").checked || !consentDoc) return;
+  const r = await call("staging-pilot-consent", { action: "grant", affirmative: true, purpose: consentDoc.purpose,
+    consent_version: consentDoc.version, consent_text_sha256: consentDoc.sha256, scope: ["upload_synthetic_evidence", "operator_review"] });
+  show("consentOut", r); $("agree").checked = false; $("grant").disabled = true;
+};
+$("revoke").onclick = async () => { try { show("consentOut", await call("staging-pilot-consent", { action: "revoke" })); } catch (e) { show("consentOut", String(e.message || e)); } };
+$("loadEmp").onclick = async () => {
+  try {
+    const t = await token();
+    const r = await fetch(BASE + "/rest/v1/employment_records?select=id,employer_name,employment_start", { headers: { apikey: PUBLIC_KEY, Authorization: "Bearer " + t } });
+    const rows = await r.json(); const sel = $("emp"); sel.replaceChildren();
+    for (const row of Array.isArray(rows) ? rows : []) { const o = document.createElement("option"); o.value = row.id; o.textContent = row.employer_name + " (" + row.employment_start + ")"; sel.appendChild(o); }
+    show("uploadOut", (Array.isArray(rows) ? rows.length : 0) + " record(s).");
+  } catch (e) { show("uploadOut", String(e.message || e)); }
+};
+$("upload").onclick = async () => {
+  const f = $("file").files[0];
+  if (!f) return show("uploadOut", "Choose a PDF.");
+  if (f.size > 10 * 1024 * 1024) return show("uploadOut", "File is larger than 10 MiB.");
+  if (!$("emp").value) return show("uploadOut", "Load and choose an employment record.");
+  try {
+    const bytes = new Uint8Array(await f.arrayBuffer());
+    const local = [...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))].map((x) => x.toString(16).padStart(2, "0")).join("");
+    const r = await call("staging-evidence-upload", bytes, { "Content-Type": "application/pdf", "X-Employment-Id": $("emp").value });
+    show("uploadOut", { http: r.status, local_sha256: local, server: r.body, sha256_match: r.body && r.body.sha256 === local });
+  } catch (e) { show("uploadOut", String(e.message || e)); }
+};
+render();
+</script>
+</body>
+</html>

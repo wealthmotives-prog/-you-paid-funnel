@@ -30,6 +30,14 @@ on:
       - 'tests/evidence_upload_policy.test.ts'
       - 'supabase/functions/_shared/evidence_upload_policy.ts'
       - 'supabase/functions/staging-evidence-upload/index.ts'
+      - 'tests/test_staging_inspection_review_services.py'
+      - 'tests/inspection_policy.test.ts'
+      - 'supabase/functions/_shared/inspection_policy.ts'
+      - 'supabase/functions/_shared/staging_http.ts'
+      - 'supabase/functions/staging-inspection-processor/index.ts'
+      - 'supabase/functions/staging-operator-review/index.ts'
+      - 'supabase/staging_migrations/20261126_inspection_reconciliation_review.sql'
+      - 'staging/**'
       - 'supabase/functions/cloudmersive-synthetic-probe/index.ts'
       - 'supabase/functions/evidence-cloudmersive-scanner/index.ts'
       - 'research/evidence_scan_receipt_lab.py'
@@ -92,3 +100,4 @@ jobs:
           python -m unittest discover -s tests -p 'test_cloudmersive_synthetic_probe.py' -v
           python -m unittest discover -s tests -p 'test_staging_pilot_consent_service.py' -v
           python -m unittest discover -s tests -p 'test_staging_evidence_upload_service.py' -v
+          python -m unittest discover -s tests -p 'test_staging_inspection_review_services.py' -v
