@@ -78,10 +78,57 @@ class InspectionReviewGuards(unittest.TestCase):
         self.assertIn("exists(select 1 from public.pilot_evidence_review_events e where e.artifact_id = a.id)", sql)
         self.assertIn("before update or delete on public.evidence_reconciliation_events", sql)
         self.assertEqual(sql.count("for update;"), 2)
+        self.assertIn("for share;", sql)
         body = sql.split("-- Rollback")[0].lower()
         for forbidden in ("delete from", "truncate", "drop table", "grant select, insert on public.evidence_reconciliation_events to authenticated"):
             self.assertNotIn(forbidden, body)
         self.assertGreaterEqual(body.count("from public, anon, authenticated"), 4)
+
+    def test_review_finding_1_sql_independently_verifies_consent(self):
+        sql = MIG.read_text()
+        fn = sql.split("create or replace function public.yp_staging_record_review_decision", 1)[1]
+        consent_block = fn.split("select * into c from public.pilot_evidence_consents", 1)[1].split("raise exception 'owner_review_consent_missing'", 1)[0]
+        for needle in ("c.user_id <> a.user_id",
+                       "c.purpose is distinct from 'pilot_work_evidence_review'",
+                       "c.consent_version is distinct from 'staging-pilot-evidence-consent-v2'",
+                       "c.consent_text_sha256 is distinct from '",
+                       "c.granted_at is null or c.granted_at > now()",
+                       "c.revoked_at is not null",
+                       "c.expires_at is null or c.expires_at <= now()",
+                       "not ('operator_review' = any(c.scope))"):
+            self.assertIn(needle, consent_block, needle)
+        # The consent check must run before the ledger insert.
+        self.assertLess(fn.index("owner_review_consent_missing"), fn.index("insert into public.pilot_evidence_review_events"))
+
+    def test_review_finding_1_sql_constants_match_policy(self):
+        policy = (ROOT / "supabase/functions/_shared/pilot_consent_policy.ts").read_text()
+        purpose = re.search(r'CONSENT_PURPOSE = "([^"]+)"', policy).group(1)
+        version = re.search(r'CURRENT_CONSENT_VERSION = "([^"]+)"', policy).group(1)
+        sha = re.search(r'sha256: "([a-f0-9]{64})"', policy).group(1)
+        sql = MIG.read_text()
+        self.assertIn(f"c.purpose is distinct from '{purpose}'", sql)
+        self.assertIn(f"c.consent_version is distinct from '{version}'", sql)
+        self.assertIn(f"c.consent_text_sha256 is distinct from '{sha}'", sql)
+
+    def test_review_finding_2_history_authorizes_record_first(self):
+        s = REV.read_text()
+        hist = s.split('if (body.action === "history") {', 1)[1].split('if (body.action !== "decide")', 1)[0]
+        self.assertIn("const elig = await eligibleForReview(body.artifact_id);", hist)
+        self.assertIn('if (elig === "not_found") return reply(404', hist)
+        self.assertIn('if (elig !== "ok") return reply(403', hist)
+        self.assertLess(hist.index("eligibleForReview"), hist.index('.from("pilot_evidence_review_events")'))
+        helper = s.split("const eligibleForReview = async", 1)[1].split("};", 1)[0]
+        for needle in ('return "not_found"', "a.user_id === operator.id", 'a.metadata?.intake !== "staging-evidence-upload-v0"',
+                       "a.metadata?.synthetic !== true", 'owner?.user?.app_metadata?.["yp_synthetic_test"] !== true'):
+            self.assertIn(needle, helper, needle)
+        dec = s.split('if (body.action !== "decide")', 1)[1]
+        self.assertLess(dec.index("eligibleForReview(v.artifact_id)"), dec.index("pilot_evidence_consents"))
+
+    def test_review_finding_3_parser_requires_explicit_found_viruses(self):
+        pol = (ROOT / "supabase/functions/_shared/inspection_policy.ts").read_text()
+        self.assertIn('if (typeof p.CleanResult !== "boolean")', pol)
+        self.assertIn('Object.prototype.hasOwnProperty.call(p, "FoundViruses")', pol)
+        self.assertNotIn("viruses === undefined", pol)
 
     def test_upload_duplicates_use_decision_function(self):
         s = UPL.read_text()

@@ -74,6 +74,7 @@ returns jsonb language plpgsql set search_path = '' as $$
 declare
   a public.evidence_artifacts%rowtype;
   j public.evidence_inspection_jobs%rowtype;
+  c public.pilot_evidence_consents%rowtype;
   v_last text;
   v_event uuid;
   v_status text;
@@ -88,8 +89,19 @@ begin
   if j.state <> 'quarantined' or j.failure_code is distinct from 'awaiting_human_review'
      or j.actual_sha256 is distinct from a.content_hash then
     raise exception 'scan_not_clean_or_hash_unverified'; end if;
-  if not exists (select 1 from public.pilot_evidence_consents c where c.id = p_consent_id and c.user_id = a.user_id
-                 and c.revoked_at is null and c.expires_at > now() and 'operator_review' = any(c.scope)) then
+  -- Independent consent verification (does not trust the Edge Function's evaluation).
+  -- These constants MUST equal CONSENT_PURPOSE / CURRENT_CONSENT_VERSION / CONSENT_DOCUMENTS[...].sha256 in
+  -- supabase/functions/_shared/pilot_consent_policy.ts (cross-checked by tests/test_staging_inspection_review_services.py).
+  select * into c from public.pilot_evidence_consents where id = p_consent_id for share;
+  if not found
+     or c.user_id <> a.user_id
+     or c.purpose is distinct from 'pilot_work_evidence_review'
+     or c.consent_version is distinct from 'staging-pilot-evidence-consent-v2'
+     or c.consent_text_sha256 is distinct from '61009cfa547da4fd893e8df9095440727250546c980e3dabeb3f5c404ddc0e51'
+     or c.granted_at is null or c.granted_at > now()
+     or c.revoked_at is not null
+     or c.expires_at is null or c.expires_at <= now()
+     or not ('operator_review' = any(c.scope)) then
     raise exception 'owner_review_consent_missing'; end if;
   select e.event_type into v_last from public.pilot_evidence_review_events e
     where e.artifact_id = a.id order by e.recorded_at desc, e.id desc limit 1;

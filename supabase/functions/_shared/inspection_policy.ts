@@ -61,10 +61,14 @@ export function vendorVerdict(httpStatus: number | null, payload: unknown, trans
   if (!payload || typeof payload !== "object" || Array.isArray(payload))
     return { outcome: "indeterminate", retryable: true, detail: "malformed_payload" };
   const p = payload as Record<string, unknown>;
+  if (typeof p.CleanResult !== "boolean") return { outcome: "indeterminate", retryable: true, detail: "clean_result_missing" };
   if (p.CleanResult === false) return { outcome: "infected", retryable: false, detail: "vendor_infected" };
+  // CleanResult === true is only "clean" when FoundViruses is EXPLICITLY present and empty (null or []).
+  if (!Object.prototype.hasOwnProperty.call(p, "FoundViruses"))
+    return { outcome: "indeterminate", retryable: true, detail: "found_viruses_missing" };
   const viruses = p.FoundViruses;
-  const noViruses = viruses === null || viruses === undefined || (Array.isArray(viruses) && viruses.length === 0);
-  if (p.CleanResult === true && noViruses) return { outcome: "clean", retryable: false, detail: "vendor_clean" };
+  if (viruses === null || (Array.isArray(viruses) && viruses.length === 0))
+    return { outcome: "clean", retryable: false, detail: "vendor_clean" };
   return { outcome: "indeterminate", retryable: true, detail: "ambiguous_payload" };
 }
 

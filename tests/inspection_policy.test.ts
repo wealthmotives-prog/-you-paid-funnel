@@ -43,6 +43,21 @@ test("IP-07 explicit clean only", () => {
   assert.equal(vendorVerdict(200, { CleanResult: true, FoundViruses: null }).outcome, "clean");
   assert.equal(vendorVerdict(200, { CleanResult: true, FoundViruses: [] }).outcome, "clean");
 });
+test("IP-07b REVIEW FINDING 3: CleanResult true without an explicit FoundViruses property is NOT clean", () => {
+  assert.deepEqual(vendorVerdict(200, { CleanResult: true }), { outcome: "indeterminate", retryable: true, detail: "found_viruses_missing" });
+  assert.equal(vendorVerdict(200, { CleanResult: true, Other: 1 }).outcome, "indeterminate");
+  assert.equal(vendorVerdict(200, Object.create({ FoundViruses: null, CleanResult: true })).outcome, "indeterminate"); // inherited, not own
+});
+test("IP-07c REVIEW FINDING 3: CleanResult must be an explicit boolean", () => {
+  for (const p of [{ FoundViruses: null }, { CleanResult: "true", FoundViruses: null }, { CleanResult: 1, FoundViruses: [] }, { CleanResult: null, FoundViruses: null }])
+    assert.equal(vendorVerdict(200, p).outcome, "indeterminate", JSON.stringify(p));
+});
+test("IP-07d explicit structures still classify correctly", () => {
+  assert.equal(vendorVerdict(200, { CleanResult: true, FoundViruses: null }).detail, "vendor_clean");
+  assert.equal(vendorVerdict(200, { CleanResult: true, FoundViruses: [] }).detail, "vendor_clean");
+  assert.equal(vendorVerdict(200, { CleanResult: false }).outcome, "infected");
+  assert.equal(vendorVerdict(500, { CleanResult: true, FoundViruses: null }).outcome, "indeterminate");
+});
 test("IP-08 infected", () => assert.deepEqual(vendorVerdict(200, { CleanResult: false, FoundViruses: [{ VirusName: "EICAR" }] }),
   { outcome: "infected", retryable: false, detail: "vendor_infected" }));
 test("IP-09 ambiguous / malformed 200 payloads are indeterminate", () => {

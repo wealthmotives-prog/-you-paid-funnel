@@ -35,6 +35,18 @@ Deno.serve(async (req: Request) => {
   if (!isStagingOperator(operator.app_metadata)) return reply(403, { error: "staging_operator_required" });
   if (!body) return reply(400, { error: "invalid_json" });
 
+  const eligibleForReview = async (artifactId: string): Promise<string> => {
+    const { data: a, error } = await admin.from("evidence_artifacts").select("id,user_id,metadata").eq("id", artifactId).maybeSingle();
+    if (error) throw new Error("artifact_read_failed");
+    if (!a) return "not_found";
+    if (a.user_id === operator.id) return "self_review_forbidden";
+    if (a.metadata?.intake !== "staging-evidence-upload-v0" || a.metadata?.synthetic !== true) return "not_eligible_synthetic_evidence";
+    const { data: owner, error: oErr } = await admin.auth.admin.getUserById(a.user_id);
+    if (oErr) throw new Error("owner_read_failed");
+    if (owner?.user?.app_metadata?.["yp_synthetic_test"] !== true) return "not_eligible_synthetic_evidence";
+    return "ok";
+  };
+
   try {
     if (body.action === "queue") {
       // Metadata only: no file bytes, no storage paths, no URLs. Excludes the operator's own evidence.
@@ -60,6 +72,11 @@ Deno.serve(async (req: Request) => {
 
     if (body.action === "history") {
       if (!isUuid(body.artifact_id)) return reply(400, { error: "artifact_id_required" });
+      // Authorize the RECORD before returning any events: synthetic v0 intake, owner is a server-marked test
+      // account, and not the operator's own evidence. Unknown -> 404; anything else -> 403.
+      const elig = await eligibleForReview(body.artifact_id);
+      if (elig === "not_found") return reply(404, { error: "artifact_not_found" });
+      if (elig !== "ok") return reply(403, { error: elig });
       const { data, error } = await admin.from("pilot_evidence_review_events")
         .select("id,event_type,reason_code,rationale,operator_id,recorded_at").eq("artifact_id", body.artifact_id)
         .order("recorded_at", { ascending: true });
@@ -71,6 +88,9 @@ Deno.serve(async (req: Request) => {
     const { action: _a, ...decision } = body;
     const v = validateDecision(decision);
     if (!v.ok) return reply(422, { error: v.reason });
+    const elig = await eligibleForReview(v.artifact_id);
+    if (elig === "not_found") return reply(404, { error: "artifact_not_found" });
+    if (elig !== "ok") return reply(403, { error: elig });
     const { data: art, error: artErr } = await admin.from("evidence_artifacts").select("id,user_id").eq("id", v.artifact_id).maybeSingle();
     if (artErr) throw new Error("artifact_read_failed");
     if (!art) return reply(404, { error: "artifact_not_found" });
