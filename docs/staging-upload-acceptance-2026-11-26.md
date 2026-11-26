@@ -75,7 +75,7 @@ Both fixes postdate the independent review and **need re-review** before PR #2 i
 Twice the browser harness lost its in-memory results after its requests had run: one hung request, and one result-recording bug. In both cases the outcomes were recovered from function logs and database state, without re-sending writes, and the missing response bodies were re-verified with non-writing probes (UC-01, UC-03).
 
 ## Cleanup status
-- Fault-injection triggers: removal **pending owner confirmation**. The `DROP` prompted a confirmation that timed out. They only affect the two FICTIONAL fault employment records.
-- `YOU_PAID_STAGING_UPLOAD_ENABLED`: **still enabled.** The owner must remove it; Claude then verifies 503.
+- Fault-injection triggers: **removed** (owner-approved, 2026-11-26 ~22:35 UTC). Verified: 0 `yp_test_fault_*` triggers and 0 such functions; 0 triggers on the artifact/job tables; review-ledger append-only trigger still enabled.
+- `YOU_PAID_STAGING_UPLOAD_ENABLED`: **removed by the owner.** Verified: anon key and marked member B (2 MiB bodies) both get `503 staging_upload_not_enabled` in ~0.6 s. Deployed bundles unchanged after the secret change (upload `13e5be42…`, consent `0aa8b883…`, scanner `3eaa56ab…`); only version numbers bumped.
 - Synthetic artifacts remain for the next step (scanner). Remove later with `docs/staging-synthetic-upload-cleanup-runbook.md`.
 - Consents: A and B revoked after the run (B: `d64947d8…`). No test member holds an active consent, so no further uploads are possible even while the gate is on.
