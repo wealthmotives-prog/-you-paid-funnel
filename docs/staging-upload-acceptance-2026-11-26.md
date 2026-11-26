@@ -78,4 +78,4 @@ Twice the browser harness lost its in-memory results after its requests had run:
 - Fault-injection triggers: removal **pending owner confirmation**. The `DROP` prompted a confirmation that timed out. They only affect the two FICTIONAL fault employment records.
 - `YOU_PAID_STAGING_UPLOAD_ENABLED`: **still enabled.** The owner must remove it; Claude then verifies 503.
 - Synthetic artifacts remain for the next step (scanner). Remove later with `docs/staging-synthetic-upload-cleanup-runbook.md`.
-- Consents: A revoked. B still active; revoke at cleanup.
+- Consents: A and B revoked after the run (B: `d64947d8…`). No test member holds an active consent, so no further uploads are possible even while the gate is on.
