@@ -88,12 +88,17 @@ Deno.serve(async (req: Request) => {
 
     // 5) Idempotent retry: the same bytes for the same member + employment record return the existing intake.
     const { data: dup, error: dupError } = await admin.from("evidence_artifacts")
-      .select("id").eq("user_id", userId).eq("employment_id", employmentId!).eq("content_hash", digest)
+      .select("id,review_status").eq("user_id", userId).eq("employment_id", employmentId!).eq("content_hash", digest)
       .eq("metadata->>intake", INTAKE_VERSION).limit(1).maybeSingle();
     if (dupError) throw new Error("duplicate_check_failed");
     if (dup) {
-      const { data: dj } = await admin.from("evidence_inspection_jobs").select("id,state").eq("artifact_id", dup.id).maybeSingle();
-      return reply(200, { artifact_id: dup.id, job_id: dj?.id ?? null, job_state: dj?.state ?? "missing",
+      const { data: dj, error: djError } = await admin.from("evidence_inspection_jobs").select("id,state").eq("artifact_id", dup.id).maybeSingle();
+      if (djError) throw new Error("duplicate_job_check_failed");
+      // A prior partial intake (no job / flagged) must never read as success on retry.
+      if (!dj || dup.review_status === "reconciliation_required")
+        return reply(409, { error: "reconciliation_required", artifact_id: dup.id, job_state: dj?.state ?? "missing",
+          duplicate: true, recorded: false });
+      return reply(200, { artifact_id: dup.id, job_id: dj.id, job_state: dj.state,
         sha256: digest, duplicate: true, quarantined: true, scanned: false, approved: false });
     }
 
