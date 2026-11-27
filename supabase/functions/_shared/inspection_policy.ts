@@ -20,6 +20,9 @@ export const FC = {
   CONSENT: "consent_withdrawn",
   OBJECT_MISSING: "quarantined_object_missing",
   NOT_ELIGIBLE: "not_eligible_synthetic_evidence",
+  // Vendor rejected OUR credentials (HTTP 401/403). Not the evidence's fault: no attempt is consumed and the job stays
+  // claimable, so repairing the key lets it proceed. The file stays quarantined throughout (fail closed).
+  CONFIG_ERROR: "scanner_configuration_error",
 } as const;
 
 export type Job = {
@@ -41,7 +44,8 @@ export function claimable(job: Job | null | undefined, now: Date): { ok: true } 
   if (job.attempts >= MAX_SCAN_ATTEMPTS) return { ok: false, reason: "retry_budget_exhausted" };
   if (job.state === "queued" && job.failure_code === null) return { ok: true };
   if (job.state !== "quarantined") return { ok: false, reason: "state_not_claimable" };
-  if (job.failure_code === FC.AWAITING_SCAN || job.failure_code === FC.INDETERMINATE) return { ok: true };
+  if (job.failure_code === FC.AWAITING_SCAN || job.failure_code === FC.INDETERMINATE || job.failure_code === FC.CONFIG_ERROR)
+    return { ok: true };
   if (job.failure_code === FC.IN_PROGRESS) {
     const t = Date.parse(job.updated_at);
     if (Number.isNaN(t)) return { ok: false, reason: "claim_time_invalid" };
@@ -50,13 +54,15 @@ export function claimable(job: Job | null | undefined, now: Date): { ok: true } 
   return { ok: false, reason: "terminal_or_unknown_state" };
 }
 
-export type Verdict = { outcome: "clean" | "infected" | "indeterminate"; retryable: boolean; detail: string };
+export type Verdict = { outcome: "clean" | "infected" | "indeterminate" | "config_error"; retryable: boolean; detail: string };
 
 /** Interpret the vendor result. HTTP 200 is never by itself "clean". */
 export function vendorVerdict(httpStatus: number | null, payload: unknown, transportError?: string): Verdict {
   if (transportError) return { outcome: "indeterminate", retryable: true, detail: "transport:" + transportError.slice(0, 40) };
   if (httpStatus === null) return { outcome: "indeterminate", retryable: true, detail: "no_status" };
   if (httpStatus === 429 || httpStatus >= 500) return { outcome: "indeterminate", retryable: true, detail: "http_" + httpStatus };
+  // 401/403 mean the vendor rejected our credentials: a configuration fault, never a verdict about the file.
+  if (httpStatus === 401 || httpStatus === 403) return { outcome: "config_error", retryable: true, detail: "http_" + httpStatus };
   if (httpStatus !== 200) return { outcome: "indeterminate", retryable: false, detail: "http_" + httpStatus };
   if (!payload || typeof payload !== "object" || Array.isArray(payload))
     return { outcome: "indeterminate", retryable: true, detail: "malformed_payload" };
@@ -76,8 +82,31 @@ export function vendorVerdict(httpStatus: number | null, payload: unknown, trans
 export function failureCodeAfterScan(v: Verdict, attempts: number): string {
   if (v.outcome === "clean") return FC.AWAITING_REVIEW;
   if (v.outcome === "infected") return FC.MALWARE;
+  if (v.outcome === "config_error") return FC.CONFIG_ERROR;
   if (!v.retryable) return FC.RETRY_EXHAUSTED;
   return attempts >= MAX_SCAN_ATTEMPTS ? FC.RETRY_EXHAUSTED : FC.INDETERMINATE;
+}
+
+/**
+ * Attempt accounting (CR-2). `attempts` counts scan attempts that were completed or abandoned, never configuration
+ * failures. Claiming does not consume an attempt; finishing does (except config_error). Taking over a STALE claim counts
+ * the abandoned attempt, so a crashing worker cannot loop forever. `attempts` never decreases (DB trigger enforces it).
+ */
+export type ClaimPlan =
+  | { ok: true; stale: boolean; priorAttempts: number; exhausted: boolean }
+  | { ok: false; reason: string };
+
+export function claimPlan(job: Job | null | undefined, now: Date): ClaimPlan {
+  const c = claimable(job, now);
+  if (!c.ok) return c;
+  const stale = job!.failure_code === FC.IN_PROGRESS;
+  const priorAttempts = job!.attempts + (stale ? 1 : 0);
+  return { ok: true, stale, priorAttempts, exhausted: priorAttempts >= MAX_SCAN_ATTEMPTS };
+}
+
+/** Attempts to record when a claimed attempt finishes. Configuration failures consume nothing. */
+export function attemptsAfter(priorAttempts: number, consumed: boolean): number {
+  return consumed ? priorAttempts + 1 : priorAttempts;
 }
 
 // Job conditions under which a repeated upload of the same bytes may be reported as an accepted intake.

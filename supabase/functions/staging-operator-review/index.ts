@@ -10,7 +10,11 @@ import { isUuid } from "../_shared/evidence_upload_policy.ts";
 import { FC, isStagingOperator, validateDecision } from "../_shared/inspection_policy.ts";
 import { jsonReply, preflight, readSmallJson } from "../_shared/staging_http.ts";
 
+// Artifacts in these review statuses have a final decision and are never offered for review again.
+const TERMINAL_REVIEW_STATUSES = ["accepted_for_pilot_review", "rejected"];
+
 const RPC_ERRORS: Record<string, number> = {
+  operator_not_authorized: 403,
   artifact_not_found: 404, self_review_forbidden: 403, not_eligible_synthetic_evidence: 403,
   inspection_job_missing: 409, scan_not_clean_or_hash_unverified: 409, owner_review_consent_missing: 409,
   decision_already_final: 409, review_not_started: 409,
@@ -60,14 +64,32 @@ Deno.serve(async (req: Request) => {
         : { data: [], error: null };
       if (aErr) throw new Error("artifact_read_failed");
       const byId = new Map((arts ?? []).map((a) => [a.id, a]));
-      const items = (jobs ?? []).map((j) => {
-        const a = byId.get(j.artifact_id);
-        if (!a || a.user_id === operator.id || a.metadata?.intake !== "staging-evidence-upload-v0" || a.metadata?.synthetic !== true) return null;
-        return { artifact_id: a.id, job_id: j.id, review_status: a.review_status, received_at: a.received_at,
-          size_bytes: a.metadata?.size_bytes ?? null, sha256: a.content_hash, sha256_verified: j.actual_sha256 === a.content_hash,
-          scan: j.failure_code, scanned_at: j.scanned_at };
-      }).filter(Boolean);
-      return reply(200, { items });
+      // CR-3: an item is listed only if it is synthetic v0 evidence, not the operator's own, not already decided, and its
+      // owner is STILL a server-marked synthetic test account holding an active operator_review consent right now.
+      const candidates = (jobs ?? []).map((j) => ({ j, a: byId.get(j.artifact_id) })).filter(({ a }) =>
+        !!a && a.user_id !== operator.id && a.metadata?.intake === "staging-evidence-upload-v0" && a.metadata?.synthetic === true &&
+        !TERMINAL_REVIEW_STATUSES.includes(a.review_status));
+      const owners = [...new Set(candidates.map(({ a }) => a!.user_id as string))];
+      const eligibleOwners = new Set<string>();
+      if (owners.length) {
+        const { data: crow, error: cqErr } = await admin.from("pilot_evidence_consents")
+          .select("id,user_id,purpose,consent_version,scope,granted_at,revoked_at,expires_at,consent_text_sha256")
+          .in("user_id", owners).eq("purpose", CONSENT_PURPOSE).order("granted_at", { ascending: false }).limit(500);
+        if (cqErr) throw new Error("consent_read_failed");
+        const now = new Date();
+        for (const uid of owners) {
+          const own = ((crow ?? []) as ConsentRow[]).filter((r) => r.user_id === uid);
+          if (!evaluateConsent(own, uid, "operator_review", now).allowed) continue;
+          const { data: owner, error: oErr } = await admin.auth.admin.getUserById(uid);
+          if (oErr) throw new Error("owner_read_failed");
+          if (owner?.user?.app_metadata?.["yp_synthetic_test"] === true) eligibleOwners.add(uid);
+        }
+      }
+      const items = candidates.filter(({ a }) => eligibleOwners.has(a!.user_id)).map(({ j, a }) => ({
+        artifact_id: a!.id, job_id: j.id, review_status: a!.review_status, received_at: a!.received_at,
+        size_bytes: a!.metadata?.size_bytes ?? null, sha256: a!.content_hash, sha256_verified: j.actual_sha256 === a!.content_hash,
+        scan: j.failure_code, scanned_at: j.scanned_at }));
+      return reply(200, { items, withheld: (jobs ?? []).length - items.length });
     }
 
     if (body.action === "history") {

@@ -43,7 +43,8 @@ class InspectionReviewGuards(unittest.TestCase):
     def test_processor_claim_is_compare_and_set_and_rehashes(self):
         s = PROC.read_text()
         self.assertIn('.eq("attempts", job.attempts).eq("updated_at", job.updated_at)', s)
-        self.assertIn('.eq("failure_code", FC.IN_PROGRESS).eq("attempts", attempt)', s)
+        # Finish only under OUR claim: the claim timestamp is the token (a stale takeover changes it).
+        self.assertIn('.eq("failure_code", FC.IN_PROGRESS).eq("updated_at", claimedAt)', s)
         self.assertIn("const digest = await sha256Hex(bytes);", s)
         self.assertIn("if (digest !== a.content_hash)", s)
         self.assertLess(s.index("if (digest !== a.content_hash)"), s.index("await fetch(ENDPOINT"))
@@ -51,6 +52,40 @@ class InspectionReviewGuards(unittest.TestCase):
         self.assertIn("signal: AbortSignal.timeout(VENDOR_TIMEOUT_MS)", s)
         self.assertIn('redirect: "error"', s)
         self.assertLess(s.index('return reply(503, { error: "scanner_not_configured" })'), s.index("// Compare-and-set claim"))
+
+    # ---- v0.2 regression guards (CR-1, CR-2, CR-3) ----
+    def test_cr1_consent_rechecked_after_validation_and_before_vendor(self):
+        s = PROC.read_text()
+        pdf, last, fetch = s.index("const pdf = checkPdfBytes(bytes);"), s.index("const lastConsent = await ownerConsent();"), s.index("await fetch(ENDPOINT")
+        self.assertLess(s.index("const consent = await ownerConsent();"), s.index("const bytes = await download(job.object_path)"))
+        self.assertLess(pdf, last)
+        self.assertLess(last, fetch)
+        between = s[last:fetch]
+        self.assertIn('stage: "pre_vendor", vendor_contacted: false', between)
+        self.assertNotIn("fetch(", between)
+        self.assertEqual(s.count("await fetch("), 1, "exactly one vendor call site")
+
+    def test_cr2_config_errors_fail_closed_without_consuming_attempts(self):
+        s = PROC.read_text()
+        self.assertIn("const plan = claimPlan(job as Job, now);", s)
+        self.assertIn("attempts: prior, updated_at: claimedAt", s)
+        self.assertIn('if (verdict.outcome === "config_error")', s)
+        self.assertIn("digest, false, false, 503);", s)  # not a scan, no attempt consumed, 503
+        self.assertIn("if (plan.exhausted) return await finish(FC.RETRY_EXHAUSTED", s)
+        self.assertLess(s.index("if (plan.exhausted)"), s.index("await fetch(ENDPOINT"))
+        self.assertNotIn("job.attempts + 1", s)
+
+    def test_cr3_queue_requires_current_review_consent_marker_and_open_status(self):
+        s = REV.read_text()
+        q = s[s.index('if (body.action === "queue")'):s.index('if (body.action === "history")')]
+        self.assertIn('evaluateConsent(own, uid, "operator_review", now).allowed', q)
+        self.assertIn('owner?.user?.app_metadata?.["yp_synthetic_test"] === true', q)
+        self.assertIn("!TERMINAL_REVIEW_STATUSES.includes(a.review_status)", q)
+        self.assertIn("a.user_id !== operator.id", q)
+        self.assertIn("eligibleOwners.has(a!.user_id)", q)
+        for forbidden in ("storage_reference", "object_path", "createSignedUrl", "download("):
+            self.assertNotIn(forbidden, q)
+        self.assertIn("operator_not_authorized: 403", s)
 
     def test_existing_scanner_and_locks_untouched(self):
         scanner = (ROOT / "supabase/functions/evidence-cloudmersive-scanner/index.ts").read_text()

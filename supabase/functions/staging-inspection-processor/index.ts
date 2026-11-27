@@ -10,8 +10,8 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { type ConsentRow, CONSENT_PURPOSE, environmentIsStaging, evaluateConsent } from "../_shared/pilot_consent_policy.ts";
 import { checkPdfBytes, EVIDENCE_BUCKET, isUuid, sha256Hex } from "../_shared/evidence_upload_policy.ts";
 import {
-  claimable, FC, failureCodeAfterScan, isStagingOperator, type Job, MAX_VENDOR_RESPONSE_BYTES, SCANNER_NAME,
-  VENDOR_TIMEOUT_MS, vendorVerdict,
+  attemptsAfter, claimPlan, FC, failureCodeAfterScan, isStagingOperator, type Job, MAX_VENDOR_RESPONSE_BYTES,
+  SCANNER_NAME, VENDOR_TIMEOUT_MS, vendorVerdict,
 } from "../_shared/inspection_policy.ts";
 import { jsonReply, preflight, readSmallJson } from "../_shared/staging_http.ts";
 
@@ -102,32 +102,41 @@ Deno.serve(async (req: Request) => {
     if (jobErr) throw new Error("job_read_failed");
     if (!job) return reply(404, { error: "job_not_found" });
     const now = new Date();
-    const c = claimable(job as Job, now);
-    if (!c.ok) return reply(409, { error: "job_not_claimable", reason: c.reason, failure_code: job.failure_code, attempts: job.attempts });
+    const plan = claimPlan(job as Job, now);
+    if (!plan.ok) return reply(409, { error: "job_not_claimable", reason: plan.reason, failure_code: job.failure_code, attempts: job.attempts });
     // Configuration check BEFORE claiming, so a missing vendor key never consumes a retry.
     const vendorKey = Deno.env.get("CLOUDMERSIVE_API_KEY") || "";
     if (!vendorKey) return reply(503, { error: "scanner_not_configured" });
 
-    // Compare-and-set claim: only succeeds if nobody changed the job since we read it.
-    const attempt = job.attempts + 1;
+    // Compare-and-set claim: only succeeds if nobody changed the job since we read it. Claiming consumes no attempt
+    // (CR-2); taking over a stale claim records the abandoned attempt (claimPlan). Our claim is identified by claimedAt.
+    const prior = plan.priorAttempts;
+    const attempt = prior + 1;
+    const claimedAt = now.toISOString();
     const { data: claimed, error: claimErr } = await admin.from("evidence_inspection_jobs")
-      .update({ state: "quarantined", failure_code: FC.IN_PROGRESS, attempts: attempt, updated_at: now.toISOString() })
+      .update({ state: "quarantined", failure_code: FC.IN_PROGRESS, attempts: prior, updated_at: claimedAt })
       .eq("id", jobId).eq("attempts", job.attempts).eq("updated_at", job.updated_at)
       .select("id").maybeSingle();
     if (claimErr) throw new Error("claim_failed");
     if (!claimed) return reply(409, { error: "claim_lost_to_concurrent_worker" });
 
-    // From here on every exit must record a terminal or retryable code under OUR claim.
-    const finish = async (code: string, extra: Record<string, unknown>, sha: string | null, scanned: boolean) => {
-      const patch: Record<string, unknown> = { failure_code: code, updated_at: new Date().toISOString(), state: "quarantined" };
+    // From here on every exit must record a terminal or retryable code under OUR claim (same claimedAt, still in progress).
+    const finish = async (code: string, extra: Record<string, unknown>, sha: string | null, scanned: boolean,
+                          consumed = true, status = 200) => {
+      const patch: Record<string, unknown> = { failure_code: code, updated_at: new Date().toISOString(), state: "quarantined",
+        attempts: attemptsAfter(prior, consumed) };
       if (sha) patch.actual_sha256 = sha;
       if (scanned) { patch.scanner_name = SCANNER_NAME; patch.scanned_at = new Date().toISOString(); }
       const { data: done, error } = await admin.from("evidence_inspection_jobs").update(patch)
-        .eq("id", jobId).eq("failure_code", FC.IN_PROGRESS).eq("attempts", attempt).select("id").maybeSingle();
+        .eq("id", jobId).eq("failure_code", FC.IN_PROGRESS).eq("updated_at", claimedAt).select("id").maybeSingle();
       if (error || !done) return reply(409, { error: "claim_record_conflict", attempted_code: code });
-      return reply(200, { job_id: jobId, attempt, failure_code: code, state: "quarantined", approved: false,
+      return reply(status, { ...(status === 200 ? {} : { error: code }), job_id: jobId, attempt,
+        attempts_recorded: attemptsAfter(prior, consumed), failure_code: code, state: "quarantined", approved: false,
         released: false, member_access: false, ...extra });
     };
+
+    // A stale takeover that would exceed the budget is closed out without contacting the vendor.
+    if (plan.exhausted) return await finish(FC.RETRY_EXHAUSTED, { detail: "abandoned_attempts_exhausted_budget" }, null, false, false);
 
     const e = await eligibleArtifact(job.artifact_id);
     if (!e || !e.ok) return await finish(FC.NOT_ELIGIBLE, {}, null, false);
@@ -136,13 +145,17 @@ Deno.serve(async (req: Request) => {
         !/^[0-9a-f-]{36}\/[0-9a-f-]{36}\.pdf$/.test(job.object_path))
       return await finish(FC.INTEGRITY, { detail: "linkage_mismatch" }, null, false);
 
-    // Consent: the owner must still hold an active upload consent (withdrawal stops processing).
-    const { data: rows, error: cErr } = await admin.from("pilot_evidence_consents")
-      .select("id,user_id,purpose,consent_version,scope,granted_at,revoked_at,expires_at,consent_text_sha256")
-      .eq("user_id", a.user_id).eq("purpose", CONSENT_PURPOSE).order("granted_at", { ascending: false }).limit(20);
-    if (cErr) throw new Error("consent_read_failed");
-    const consent = evaluateConsent((rows ?? []) as ConsentRow[], a.user_id, "upload_synthetic_evidence", new Date());
-    if (!consent.allowed) return await finish(FC.CONSENT, { detail: consent.reason }, null, false);
+    // Consent: the owner must still hold an active upload consent (withdrawal stops processing). Evaluated twice:
+    // before reading the file, and again immediately before any byte is sent to the vendor (CR-1).
+    const ownerConsent = async () => {
+      const { data: rows, error: cErr } = await admin.from("pilot_evidence_consents")
+        .select("id,user_id,purpose,consent_version,scope,granted_at,revoked_at,expires_at,consent_text_sha256")
+        .eq("user_id", a.user_id).eq("purpose", CONSENT_PURPOSE).order("granted_at", { ascending: false }).limit(20);
+      if (cErr) throw new Error("consent_read_failed");
+      return evaluateConsent((rows ?? []) as ConsentRow[], a.user_id, "upload_synthetic_evidence", new Date());
+    };
+    const consent = await ownerConsent();
+    if (!consent.allowed) return await finish(FC.CONSENT, { detail: consent.reason, stage: "pre_download" }, null, false);
 
     const bytes = await download(job.object_path);
     if (!bytes) return await finish(FC.OBJECT_MISSING, {}, null, false);
@@ -150,6 +163,11 @@ Deno.serve(async (req: Request) => {
     if (digest !== a.content_hash) return await finish(FC.INTEGRITY, { detail: "sha256_mismatch", actual_sha256: digest }, digest, false);
     const pdf = checkPdfBytes(bytes);
     if (!pdf.ok) return await finish(FC.PREFLIGHT, { detail: pdf.reason }, digest, false);
+
+    // CR-1: last gate before the third-party transfer. A withdrawal that landed during download/hash/validation wins.
+    const lastConsent = await ownerConsent();
+    if (!lastConsent.allowed)
+      return await finish(FC.CONSENT, { detail: lastConsent.reason, stage: "pre_vendor", vendor_contacted: false }, digest, false);
 
     let verdict;
     try {
@@ -166,6 +184,10 @@ Deno.serve(async (req: Request) => {
       verdict = vendorVerdict(null, null, err instanceof Error ? err.name : "error");
     }
     const code = failureCodeAfterScan(verdict, attempt);
+    // CR-2: vendor rejected our credentials. Fail closed (503), keep the file quarantined, consume no attempt, and leave
+    // the job claimable so it proceeds once the key is repaired. Not recorded as a scan.
+    if (verdict.outcome === "config_error")
+      return await finish(code, { verdict: verdict.outcome, detail: verdict.detail, retryable: true }, digest, false, false, 503);
     return await finish(code, { verdict: verdict.outcome, detail: verdict.detail, sha256_verified: true }, digest, true);
   } catch (err) {
     console.error("staging-inspection-processor failure", err instanceof Error ? err.message : "unknown");
