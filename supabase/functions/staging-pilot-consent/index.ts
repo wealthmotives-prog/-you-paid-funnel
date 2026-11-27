@@ -9,12 +9,14 @@ import {
   CURRENT_CONSENT_VERSION, type ConsentRow, environmentIsStaging, evaluateConsent, expiryFor,
   identityAllowsScopes, isSyntheticTestIdentity, validateGrantRequest,
 } from "../_shared/pilot_consent_policy.ts";
+import { corsHeaders, preflight } from "../_shared/staging_http.ts";
 
 const MAX_BODY = 4096;
-const reply = (status: number, payload: Record<string, unknown>) =>
-  Response.json(payload, { status, headers: { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" } });
-
 Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") return preflight(req);
+  const reply = (status: number, payload: Record<string, unknown>) =>
+    Response.json(payload, { status, headers: { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff",
+      ...corsHeaders(req.headers.get("origin")) } });
   const url = Deno.env.get("SUPABASE_URL") || "";
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
   // Hard environment gate: refuses to run anywhere except the staging project.

@@ -75,8 +75,8 @@ class StagingEvidenceUploadTests(unittest.TestCase):
     def test_retry_of_partial_intake_never_reads_as_success(self):
         s = FN.read_text()
         dup = s.split("if (dup) {", 1)[1].split("// 6)", 1)[0]
-        self.assertIn('if (!dj || dup.review_status === "reconciliation_required")', dup)
-        self.assertIn('reply(409, { error: "reconciliation_required"', dup)
+        self.assertIn("duplicateDecision(", dup)
+        self.assertIn("if (d.status === 409)", dup)
         self.assertLess(dup.index("reply(409"), dup.index("reply(200"))
 
     def test_cleanup_runbook_is_scoped_and_guarded(self):
